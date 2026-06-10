@@ -1,0 +1,44 @@
+[
+  {
+    "authFile": "/home/example/.codex/auth.json",
+    "baseUrl": "https://chatgpt.com/backend-api",
+    "account": {
+      "email": "redacted@example.invalid",
+      "accountId": "00000000-0000-0000-0000-000000000000",
+      "planFromToken": "plus",
+      "planFromUsage": "plus"
+    },
+    "allowed": true,
+    "limitReached": false,
+    "windows": {
+      "primary": {
+        "label": "5h",
+        "percentUsed": 45,
+        "percentRemaining": 55,
+        "windowMinutes": 300,
+        "resetsAt": "2026-06-10T09:07:44.000Z",
+        "raw": {
+          "used_percent": 45,
+          "limit_window_seconds": 18000,
+          "reset_after_seconds": 147,
+          "reset_at": 1781082464
+        }
+      },
+      "secondary": {
+        "label": "weekly",
+        "percentUsed": 23,
+        "percentRemaining": 77,
+        "windowMinutes": 10080,
+        "resetsAt": "2026-06-16T09:47:13.000Z",
+        "raw": {
+          "used_percent": 23,
+          "limit_window_seconds": 604800,
+          "reset_after_seconds": 520916,
+          "reset_at": 1781603233
+        }
+      }
+    },
+    "fetchedAt": "2026-06-10T09:05:18.307Z",
+    "lastRefresh": "2026-06-09T09:49:36.892204687Z"
+  }
+]

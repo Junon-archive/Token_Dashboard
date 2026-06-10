@@ -1,0 +1,24 @@
+[
+  {
+    "windows": {
+      "primary": {
+        "label": "weekly-but-mislabeled",
+        "percentUsed": 45,
+        "raw": {
+          "used_percent": 45,
+          "limit_window_seconds": 18000,
+          "reset_at": 1781082464
+        }
+      },
+      "secondary": {
+        "label": "5h-but-mislabeled",
+        "percentUsed": 23,
+        "raw": {
+          "used_percent": 23,
+          "limit_window_seconds": 604800,
+          "reset_at": 1781603233
+        }
+      }
+    }
+  }
+]

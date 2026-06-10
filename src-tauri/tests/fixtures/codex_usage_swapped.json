@@ -1,0 +1,26 @@
+[
+  {
+    "windows": {
+      "primary": {
+        "label": "weekly",
+        "percentUsed": 23,
+        "resetsAt": "2026-06-16T09:47:13.000Z",
+        "raw": {
+          "used_percent": 23,
+          "limit_window_seconds": 604800,
+          "reset_at": 1781603233
+        }
+      },
+      "secondary": {
+        "label": "5h",
+        "percentUsed": 45,
+        "resetsAt": "2026-06-10T09:07:44.000Z",
+        "raw": {
+          "used_percent": 45,
+          "limit_window_seconds": 18000,
+          "reset_at": 1781082464
+        }
+      }
+    }
+  }
+]
