@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gauge Widgets — Design Reference</title>
+<style>
+  /* =====================================================================
+     DESIGN TOKENS  (base unit = 140px widget)
+     ===================================================================== */
+  :root{
+    --page-bg:#0b0c0f;
+    --page-fg:#e9eaee;
+    --page-muted:#7d818c;
+    --page-line:rgba(255,255,255,.08);
+    --card:#121318;
+
+    --claude:#d97757;        --claude-bright:#e88a63;
+    --codex:#46c2d4;         --codex-bright:#62d4e3;
+    --pomo:#f0563d;          --pomo-bright:#ff6b52;
+    --pomo-break:#5fb98c;    --pomo-break-bright:#76cc9f;
+
+    --caution:#ebb13e;       --caution-bright:#f4c04e;
+    --danger:#e5484d;        --danger-bright:#f15a5f;
+
+    --track-main:rgba(255,255,255,.12);
+    --track-sec:rgba(255,255,255,.07);
+    --tick:rgba(255,255,255,.16);
+    --text:#f3f4f6;
+    --label:rgba(244,246,250,.55);
+
+    --disk-bg:rgba(20,21,26,.52);
+    --disk-bezel:rgba(255,255,255,.07);
+
+    --size:140px;
+    --scale:1.55;
+
+    --ease:cubic-bezier(.4,0,.2,1);
+    --t-state:240ms;
+    --t-hover:160ms;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--page-bg);
+    color:var(--page-fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+    padding:48px 40px 96px;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+
+  header.doc{border-bottom:1px solid var(--page-line);padding-bottom:28px;margin-bottom:44px}
+  header.doc .eyebrow{font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:var(--page-muted);font-weight:600;margin-bottom:14px}
+  header.doc h1{font-size:30px;font-weight:600;letter-spacing:-.4px;margin:0 0 10px}
+  header.doc p{max-width:680px;color:#b6b9c2;margin:0;font-size:14.5px}
+
+  h2.sec{font-size:13px;letter-spacing:1.6px;text-transform:uppercase;color:var(--page-muted);font-weight:600;margin:56px 0 6px}
+  h2.sec + .sub{color:#9a9ea8;font-size:13.5px;margin:0 0 24px;max-width:720px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px}
+  .card{
+    background:var(--card);
+    border:1px solid var(--page-line);
+    border-radius:14px;
+    padding:18px 18px 20px;
+  }
+  .card .hd{display:flex;align-items:baseline;gap:9px;margin-bottom:4px}
+  .card .hd .n{font-size:11px;font-weight:600;color:var(--page-muted);font-variant-numeric:tabular-nums}
+  .card .hd .name{font-size:13.5px;font-weight:600;letter-spacing:.2px}
+  .card .cond{font-size:12px;color:#8b8f99;margin-bottom:16px;min-height:32px}
+  .chips{display:flex;gap:12px}
+  .chip{
+    flex:1;border-radius:11px;overflow:hidden;position:relative;
+    display:flex;align-items:center;justify-content:center;
+    min-height:152px;
+  }
+  .chip[data-bg="dark"]{background:radial-gradient(120% 120% at 30% 20%,#23262e,#0d0e11)}
+  .chip[data-bg="light"]{background:radial-gradient(120% 120% at 30% 20%,#f2f1ee,#d4d6db)}
+  .chip .tag{position:absolute;top:8px;left:9px;font-size:9px;letter-spacing:.8px;text-transform:uppercase;font-weight:600}
+  .chip[data-bg="dark"] .tag{color:rgba(255,255,255,.32)}
+  .chip[data-bg="light"] .tag{color:rgba(0,0,0,.30)}
+
+  /* =====================================================================
+     WIDGET  — base unit 140, displayed at --scale
+     ===================================================================== */
+  .widget{
+    position:relative;
+    width:var(--size);height:var(--size);
+    transform:scale(var(--scale));
+    --arc:var(--brand);
+    --arc-op:1;
+    --tm:var(--track-main);
+  }
+  .widget.claude{--brand:var(--claude);--brand-bright:var(--claude-bright)}
+  .widget.codex {--brand:var(--codex); --brand-bright:var(--codex-bright)}
+  .widget.pomo  {--brand:var(--pomo);  --brand-bright:var(--pomo-bright)}
+
+  .disk{
+    position:absolute;left:50%;top:50%;
+    width:128px;height:128px;margin:-64px 0 0 -64px;
+    border-radius:50%;
+    background:var(--disk-bg);
+    border:1px solid var(--disk-bezel);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    transition:background var(--t-hover) var(--ease),box-shadow var(--t-hover) var(--ease);
+  }
+  svg.gauge{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
+
+  .tick{stroke:var(--tick);stroke-width:1}
+  .ring-track-main{fill:none;stroke:var(--tm);stroke-width:7}
+  .ring-track-sec {fill:none;stroke:var(--track-sec);stroke-width:3}
+  .arc-main{
+    fill:none;stroke:var(--arc);stroke-width:7;stroke-linecap:round;
+    opacity:var(--arc-op);
+    transition:stroke var(--t-state) var(--ease),
+               stroke-dashoffset var(--t-state) var(--ease),
+               opacity var(--t-state) var(--ease),
+               filter var(--t-hover) var(--ease);
+  }
+  .arc-sec{
+    fill:none;stroke:var(--arc);stroke-width:3;stroke-linecap:round;
+    opacity:calc(var(--arc-op) * .5);
+    transition:stroke var(--t-state) var(--ease),stroke-dashoffset var(--t-state) var(--ease),opacity var(--t-state) var(--ease);
+  }
+
+  .center{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:3px;pointer-events:none;
+  }
+  .num{
+    font-size:30px;font-weight:560;letter-spacing:-1px;color:var(--text);
+    font-variant-numeric:tabular-nums;font-feature-settings:"tnum";
+    text-shadow:0 1px 2px rgba(0,0,0,.35);
+    transition:opacity var(--t-state) var(--ease),color var(--t-state) var(--ease);
+  }
+  .lbl{
+    font-size:9px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;
+    color:var(--label);
+  }
+
+  .lamp{display:none;flex-direction:column;align-items:center;gap:6px}
+  .lamp svg{width:26px;height:26px;display:block}
+  .lamp .lt{font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+
+  .stale-badge{
+    display:none;position:absolute;left:50%;bottom:30px;transform:translateX(-50%);
+    align-items:center;gap:3px;font-size:8.5px;font-weight:600;letter-spacing:.5px;
+    color:rgba(244,246,250,.6);text-transform:uppercase;
+  }
+  .stale-badge svg{width:9px;height:9px}
+
+  /* ---------- STATE MODIFIERS ---------- */
+  .widget.low      {--arc:var(--caution)}
+  .widget.critical {--arc:var(--danger)}
+  .widget.depleted {--arc:var(--danger);--tm:rgba(229,72,77,.26)}
+  .widget.break    {--arc:var(--pomo-break)}
+
+  .widget.critical .arc-main{animation:pulse 1.8s var(--ease) infinite}
+  @keyframes pulse{
+    0%,100%{opacity:1;filter:drop-shadow(0 0 0 transparent)}
+    50%{opacity:.82;filter:drop-shadow(0 0 3.5px var(--arc))}
+  }
+
+  .widget.stale{filter:grayscale(.55)}
+  .widget.stale .disk{opacity:.62}
+  .widget.stale .arc-main,.widget.stale .arc-sec{opacity:.4}
+  .widget.stale .num{opacity:.5}
+  .widget.stale .lbl{opacity:.45}
+  .widget.stale .stale-badge{display:flex}
+
+  .widget.paused .arc-main{stroke:rgba(255,255,255,.30)}
+  .widget.paused .num{opacity:.42}
+
+  .widget.notin .arc-main,.widget.notin .arc-sec,
+  .widget.autherr .arc-main,.widget.autherr .arc-sec{opacity:.16}
+  .widget.notin .num,.widget.notin .lbl,
+  .widget.autherr .num,.widget.autherr .lbl{display:none}
+  .widget.notin .center .lamp,.widget.autherr .center .lamp{display:flex}
+  .widget.notin .lamp svg,.widget.notin .lamp .lt{color:var(--caution);stroke:var(--caution)}
+  .widget.autherr .lamp svg,.widget.autherr .lamp .lt{color:var(--danger);stroke:var(--danger)}
+
+  .widget:hover .disk,.widget.hoverdemo .disk{background:rgba(24,25,31,.6);box-shadow:0 0 0 1px rgba(255,255,255,.05),0 6px 22px rgba(0,0,0,.35)}
+  .widget:hover .arc-main,.widget.hoverdemo .arc-main{filter:drop-shadow(0 0 5px var(--arc))}
+  .widget:hover .num,.widget.hoverdemo .num{color:#fff}
+
+  .scene{
+    border-radius:18px;padding:54px 30px;
+    background:
+      radial-gradient(80% 120% at 12% 8%,#3a4d6b 0%,transparent 55%),
+      radial-gradient(90% 120% at 90% 100%,#5a3f63 0%,transparent 50%),
+      linear-gradient(135deg,#1a2030,#0c0f17);
+    display:flex;justify-content:center;align-items:center;gap:92px;
+  }
+  .scene .widget{transform:scale(1.7)}
+
+  .doc-block{margin-top:64px;border-top:1px solid var(--page-line);padding-top:36px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;margin:10px 0 30px}
+  th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--page-line);vertical-align:top}
+  th{color:var(--page-muted);font-weight:600;font-size:11px;letter-spacing:.6px;text-transform:uppercase}
+  td code,.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11.5px}
+  .sw{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:6px;border:1px solid rgba(255,255,255,.15)}
+  .decisions li{margin-bottom:12px;font-size:13.5px;color:#c8cbd2;max-width:780px}
+  .decisions b{color:#fff;font-weight:600}
+  .legend{display:flex;flex-wrap:wrap;gap:18px;margin:0 0 8px}
+  .legend span{font-size:12px;color:#aeb2bb}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc">
+    <div class="eyebrow">Tauri · Always-on-top · Transparent</div>
+    <h1>Gauge Widgets — Design Reference</h1>
+    <p>자동차 계기판 메타포의 데스크톱 플로팅 위젯 3종(Claude Code · Codex · Pomodoro). 모든 위젯은 140×140px 정사각 기준으로 설계되었고, 이 페이지에서는 가독성 확인을 위해 1.55배로 표시합니다. 각 상태는 동일 위젯을 다크/라이트 두 바탕 위에 나란히 올려 투명 배경에서의 가독성을 검증합니다.</p>
+  </header>
+
+  <div class="legend">
+    <span><span class="sw" style="background:#d97757"></span>Claude #D97757</span>
+    <span><span class="sw" style="background:#46c2d4"></span>Codex #46C2D4</span>
+    <span><span class="sw" style="background:#f0563d"></span>Pomodoro #F0563D</span>
+    <span><span class="sw" style="background:#ebb13e"></span>Caution #EBB13E</span>
+    <span><span class="sw" style="background:#e5484d"></span>Danger #E5484D</span>
+  </div>
+
+  <h2 class="sec">Claude Code — 8 states</h2>
+  <p class="sub">메인 링 = 5시간 한도 잔량(12시 시작·시계방향). 안쪽 가는 링 = 7일 한도 잔량. 중앙 = 5시간 창 리셋까지 남은 시간(H:MM).</p>
+  <div class="grid" id="grid-claude"></div>
+
+  <h2 class="sec">Codex — palette in states</h2>
+  <p class="sub">동일 상태 언어가 한색(teal) 팔레트에서도 동일하게 동작하는지 확인.</p>
+  <div class="grid" id="grid-codex"></div>
+
+  <h2 class="sec">Pomodoro — 3 states</h2>
+  <p class="sub">보조 게이지 없음. 메인 링 = 현재 인터벌 잔량. 중앙 = 남은 분.</p>
+  <div class="grid" id="grid-pomo"></div>
+
+  <h2 class="sec">All three, floating together</h2>
+  <p class="sub">실제 바탕화면 위에 떠 있는 모습(가로 나열).</p>
+  <div class="scene" id="scene"></div>
+
+  <div class="doc-block">
+    <h2 class="sec" style="margin-top:0">Design tokens</h2>
+
+    <h3 style="font-size:13px;color:#cfd2d9;margin:18px 0 4px">Color</h3>
+    <table>
+      <tr><th>Role</th><th>Hex</th><th>Usage</th></tr>
+      <tr><td><span class="sw" style="background:#d97757"></span>Claude brand</td><td><code>#D97757</code> / bright <code>#E88A63</code></td><td>Claude 메인·보조 아크</td></tr>
+      <tr><td><span class="sw" style="background:#46c2d4"></span>Codex brand</td><td><code>#46C2D4</code> / bright <code>#62D4E3</code></td><td>Codex 메인·보조 아크</td></tr>
+      <tr><td><span class="sw" style="background:#f0563d"></span>Pomodoro</td><td><code>#F0563D</code> / bright <code>#FF6B52</code></td><td>집중(focus) 링</td></tr>
+      <tr><td><span class="sw" style="background:#5fb98c"></span>Pomodoro break</td><td><code>#5FB98C</code> / bright <code>#76CC9F</code></td><td>휴식 모드 링</td></tr>
+      <tr><td><span class="sw" style="background:#ebb13e"></span>Caution (system)</td><td><code>#EBB13E</code></td><td>LOW · NOT_LOGGED_IN 램프</td></tr>
+      <tr><td><span class="sw" style="background:#e5484d"></span>Danger (system)</td><td><code>#E5484D</code></td><td>CRITICAL · DEPLETED · AUTH_ERROR 램프</td></tr>
+      <tr><td>Text primary</td><td><code>#F3F4F6</code></td><td>중앙 숫자</td></tr>
+      <tr><td>Label</td><td><code>rgba(244,246,250,.55)</code></td><td>서비스 라벨</td></tr>
+      <tr><td>Track — main</td><td><code>rgba(255,255,255,.12)</code></td><td>메인 링 미충전부</td></tr>
+      <tr><td>Track — secondary</td><td><code>rgba(255,255,255,.07)</code></td><td>보조 링 미충전부</td></tr>
+      <tr><td>Tick</td><td><code>rgba(255,255,255,.16)</code></td><td>눈금 48개</td></tr>
+      <tr><td>Disk substrate</td><td><code>rgba(20,21,26,.52)</code> + blur(10px)</td><td>frosted 디스크</td></tr>
+      <tr><td>Disk bezel</td><td><code>rgba(255,255,255,.07)</code> 1px</td><td>디스크 외곽 헤어라인</td></tr>
+    </table>
+
+    <h3 style="font-size:13px;color:#cfd2d9;margin:18px 0 4px">Geometry (140px base)</h3>
+    <table>
+      <tr><th>Element</th><th>Value</th></tr>
+      <tr><td>Widget</td><td>140 × 140px (정사각)</td></tr>
+      <tr><td>Frosted disk</td><td>지름 128px (반경 64) · border 1px</td></tr>
+      <tr><td>Tick ring</td><td>48개 · 반경 62.5 → 66 (길이 3.5) · 두께 1</td></tr>
+      <tr><td>Main gauge (5h)</td><td>반경 55 · stroke 7 · linecap round · 둘레 ≈ 345.6</td></tr>
+      <tr><td>Secondary gauge (7d)</td><td>반경 43 · stroke 3 · opacity 0.5 · 둘레 ≈ 270.2</td></tr>
+      <tr><td>중앙 숫자</td><td>30px / weight 560 / letter-spacing −1 / tabular-nums</td></tr>
+      <tr><td>서비스 라벨</td><td>9px / weight 600 / letter-spacing 1.4 / uppercase</td></tr>
+      <tr><td>경고 램프</td><td>26 × 26px · 라벨 9px</td></tr>
+    </table>
+
+    <h3 style="font-size:13px;color:#cfd2d9;margin:18px 0 4px">Typography</h3>
+    <table>
+      <tr><th>Role</th><th>Value</th></tr>
+      <tr><td>Family</td><td><code>-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif</code> (웹폰트 의존 0)</td></tr>
+      <tr><td>중앙 숫자</td><td>30px · 560 · ls −1 · <code>font-feature-settings:"tnum"</code> (카운트다운 자릿수 흔들림 방지)</td></tr>
+      <tr><td>라벨 / 램프 텍스트</td><td>9px · 600 · ls 1.4 / 1.0 · uppercase</td></tr>
+      <tr><td>Stale 배지</td><td>8.5px · 600 · ls 0.5 · uppercase</td></tr>
+    </table>
+
+    <h3 style="font-size:13px;color:#cfd2d9;margin:18px 0 4px">Motion</h3>
+    <table>
+      <tr><th>Trigger</th><th>Value</th></tr>
+      <tr><td>상태 전환(색/오프셋/투명도)</td><td>240ms · <code>cubic-bezier(.4,0,.2,1)</code></td></tr>
+      <tr><td>HOVER(글로우/디스크/텍스트)</td><td>160ms · <code>cubic-bezier(.4,0,.2,1)</code></td></tr>
+      <tr><td>CRITICAL 펄스</td><td>1.8s · ease-in-out · infinite · opacity 1→.82 + drop-shadow 0→3.5px (유일한 상시 모션)</td></tr>
+      <tr><td>그 외</td><td>상시 애니메이션 없음 (하루 종일 떠 있는 앱)</td></tr>
+    </table>
+  </div>
+
+  <div class="doc-block">
+    <h2 class="sec" style="margin-top:0">Design decisions</h2>
+    <ul class="decisions">
+      <li><b>보조 게이지 = 동심 내부 링.</b> 하단 막대는 원형 본체와 충돌하는 사각 요소를 더하지만, 동심 링은 "같은 종류의 측정값, 한 단계 아래"라는 위계를 두께(3 vs 7)와 투명도(0.5)만으로 표현해 단일 계기판 언어를 유지한다.</li>
+      <li><b>Codex 색 = teal #46C2D4.</b> 따뜻한 주황/토마토의 보색 축에 있는 한색이라 나란히 놓였을 때 즉시 구분되면서도 같은 채도 톤으로 조화롭고, Codex/OpenAI 계열의 teal 정체성과도 어긋나지 않는다.</li>
+      <li><b>경고등 = 중앙 텔테일.</b> 미로그인은 호박색 '키' 램프, 인증오류는 적색 '경고 삼각형(!)' 램프. 색(amber/red) + 기호 두 축으로 구분하고, 데이터가 없는 상태이므로 숫자 대신 램프를 중앙에 두어 점등된 계기판 등처럼 한눈에 읽히게 했다.</li>
+      <li><b>틱 마크 = 유지(정제).</b> 사용자 선호이자 계기판 메타포의 핵심 텍스처. 단 데이터는 연속 아크가 담당하고 틱은 균일한 48개 저투명 눈금으로 링 바깥을 감싸 '정밀 계기' 인상만 주도록 역할을 분리했다.</li>
+      <li><b>HOVER = 글로우 + 디스크 상승, 스케일 없음.</b> 160ms로 아크 drop-shadow 글로우, 디스크 불투명도/그림자 상승, 숫자 순백 전환. 위젯을 키우는 스케일은 장난감처럼 보여 계기판 톤을 해치므로 배제.</li>
+      <li><b>frosted 디스크 = 적용.</b> 흰 숫자가 밝은 바탕화면에서 사라지지 않으려면 일정한 어두운 기판이 필요하다. 반투명+blur 디스크가 라이트/다크 양쪽 가독성을 보장하고, 동시에 계기판 베젤 같은 물성을 부여한다.</li>
+      <li><b>중앙 보조 퍼센트 = 생략.</b> 링 충전량이 이미 잔량을 나타내므로 퍼센트 숫자는 주인공(리셋 시간)과 중복·경쟁한다. 중앙은 시간만, 잔량은 링만.</li>
+      <li><b>중앙 포맷 = H:MM 통일.</b> 5시간 창은 항상 0:00–4:59 범위라 시계/스톱워치처럼 읽히고, 뽀모도로의 단일 숫자와 한 가족으로 묶인다. 단위 글자 없이 가장 큰 자형을 확보.</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+const CX=70, CY=70;
+const MAIN_R=55, C_MAIN=2*Math.PI*MAIN_R;
+const SEC_R=43,  C_SEC =2*Math.PI*SEC_R;
+const TICK_N=48, TICK_RI=62.5, TICK_RO=66;
+
+function ticksSVG(){
+  let s='';
+  for(let i=0;i<TICK_N;i++){
+    const a=(i/TICK_N)*Math.PI*2;
+    const sx=CX+TICK_RI*Math.sin(a), sy=CY-TICK_RI*Math.cos(a);
+    const ex=CX+TICK_RO*Math.sin(a), ey=CY-TICK_RO*Math.cos(a);
+    s+=`<line class="tick" x1="${sx.toFixed(2)}" y1="${sy.toFixed(2)}" x2="${ex.toFixed(2)}" y2="${ey.toFixed(2)}"/>`;
+  }
+  return s;
+}
+
+function arcs(main, sec){
+  const offM = (C_MAIN*(1-main)).toFixed(2);
+  let s = `<g transform="rotate(-90 ${CX} ${CY})">`;
+  s += `<circle class="ring-track-main" cx="${CX}" cy="${CY}" r="${MAIN_R}"/>`;
+  s += `<circle class="arc-main" cx="${CX}" cy="${CY}" r="${MAIN_R}" stroke-dasharray="${C_MAIN.toFixed(2)}" stroke-dashoffset="${offM}"/>`;
+  if(sec!==null){
+    const offS=(C_SEC*(1-sec)).toFixed(2);
+    s += `<circle class="ring-track-sec" cx="${CX}" cy="${CY}" r="${SEC_R}"/>`;
+    s += `<circle class="arc-sec" cx="${CX}" cy="${CY}" r="${SEC_R}" stroke-dasharray="${C_SEC.toFixed(2)}" stroke-dashoffset="${offS}"/>`;
+  }
+  s += `</g>`;
+  return s;
+}
+
+const LAMP_KEY = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="4.2"/><path d="M11 11l8 8"/><path d="M16 16l2.2-2.2"/><path d="M18.2 18.2l1.6-1.6"/></svg>`;
+const LAMP_BANG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5L22 20H2L12 3.5z"/><path d="M12 9.5v4.4"/><path d="M12 17.4v.1"/></svg>`;
+const CLOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
+
+function widget(opts){
+  const el=document.createElement('div');
+  el.className=`widget ${opts.service} ${opts.classes||''}`.trim();
+  el.innerHTML =
+    `<div class="disk"></div>`+
+    `<svg class="gauge" viewBox="0 0 140 140">${ticksSVG()}${arcs(opts.main, opts.sec===undefined?null:opts.sec)}</svg>`+
+    `<div class="center">`+
+      `<div class="num">${opts.num||''}</div>`+
+      `<div class="lbl">${opts.label||''}</div>`+
+      `<div class="lamp">${opts.lamp==='key'?LAMP_KEY:opts.lamp==='bang'?LAMP_BANG:''}<span class="lt">${opts.lampText||''}</span></div>`+
+    `</div>`+
+    (opts.stale?`<div class="stale-badge">${CLOCK}<span>${opts.stale}</span></div>`:'');
+  return el;
+}
+
+function card(grid, n, name, cond, opts){
+  const c=document.createElement('div');
+  c.className='card';
+  c.innerHTML=`<div class="hd"><span class="n">${n}</span><span class="name">${name}</span></div><div class="cond">${cond}</div>`;
+  const chips=document.createElement('div');chips.className='chips';
+  ['dark','light'].forEach(bg=>{
+    const ch=document.createElement('div');ch.className='chip';ch.dataset.bg=bg;
+    ch.innerHTML=`<span class="tag">${bg}</span>`;
+    ch.appendChild(widget(opts));
+    chips.appendChild(ch);
+  });
+  c.appendChild(chips);
+  grid.appendChild(c);
+}
+
+/* Claude — 8 states (NORMAL from PoC: 5h util 4%→96%, 7d util 6%→94%) */
+const gC=document.getElementById('grid-claude');
+card(gC,'01','NORMAL','잔량 > 20% · 기본 모습',                          {service:'claude',main:.96,sec:.94,num:'4:19',label:'Claude'});
+card(gC,'02','LOW','잔량 ≤ 20% · 아크가 호박색으로 전환',                 {service:'claude',classes:'low',main:.15,sec:.40,num:'0:38',label:'Claude'});
+card(gC,'03','CRITICAL','잔량 ≤ 5% · 적색 + 은은한 펄스',                 {service:'claude',classes:'critical',main:.04,sec:.22,num:'0:11',label:'Claude'});
+card(gC,'04','DEPLETED','잔량 0% · 링 비고 적색 트랙, 리셋시간 유지',      {service:'claude',classes:'depleted',main:0,sec:.15,num:'1:52',label:'Claude'});
+card(gC,'05','HOVER','마우스 오버 · 글로우 + 디스크 상승 (160ms)',        {service:'claude',classes:'hoverdemo',main:.72,sec:.80,num:'3:05',label:'Claude'});
+card(gC,'06','STALE','10분+ 미갱신 · 회색조 흐림 + 배지',                  {service:'claude',classes:'stale',main:.58,sec:.60,num:'2:40',label:'Claude',stale:'12m ago'});
+card(gC,'07','NOT_LOGGED_IN','CLI 미로그인 · 게이지 반투명 + 호박색 키 램프',{service:'claude',classes:'notin',main:.5,sec:.5,lamp:'key',lampText:'Sign in'});
+card(gC,'08','AUTH_ERROR','토큰 갱신 실패 · 적색 경고 삼각형 램프',         {service:'claude',classes:'autherr',main:.5,sec:.5,lamp:'bang',lampText:'Auth'});
+
+/* Codex — palette carry (NORMAL from PoC: 5h 4%→96%, weekly 24%→76%) */
+const gX=document.getElementById('grid-codex');
+card(gX,'01','NORMAL','기본 · teal 팔레트',                  {service:'codex',main:.96,sec:.76,num:'4:46',label:'Codex'});
+card(gX,'02','LOW','잔량 ≤ 20% · 동일 caution 전환',          {service:'codex',classes:'low',main:.18,sec:.55,num:'0:44',label:'Codex'});
+card(gX,'03','CRITICAL','잔량 ≤ 5% · danger + 펄스',          {service:'codex',classes:'critical',main:.03,sec:.30,num:'0:07',label:'Codex'});
+card(gX,'07','NOT_LOGGED_IN','동일 경고등 언어',              {service:'codex',classes:'notin',main:.5,sec:.5,lamp:'key',lampText:'Sign in'});
+
+/* Pomodoro — 3 states (no secondary gauge) */
+const gP=document.getElementById('grid-pomo');
+card(gP,'01','NORMAL (FOCUS)','집중 인터벌 진행 중',          {service:'pomo',main:.62,num:'22',label:'Focus'});
+card(gP,'02','BREAK','휴식 모드 · 차분한 녹색',               {service:'pomo',classes:'break',main:.80,num:'4',label:'Break'});
+card(gP,'03','PAUSED','일시정지 · 링/숫자 흐림',              {service:'pomo',classes:'paused',main:.45,num:'14',label:'Paused'});
+
+/* Bonus scene */
+const scene=document.getElementById('scene');
+scene.appendChild(widget({service:'claude',main:.96,sec:.94,num:'4:19',label:'Claude'}));
+scene.appendChild(widget({service:'codex', main:.96,sec:.76,num:'4:46',label:'Codex'}));
+scene.appendChild(widget({service:'pomo',  main:.62,num:'22',label:'Focus'}));
+</script>
+</body>
+</html>
