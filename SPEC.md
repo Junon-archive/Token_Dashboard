@@ -243,7 +243,7 @@ PoC에서 Ubuntu의 Claude access token이 만료 상태였다(§2.4-2). 선택�
 |---|---|---|---|---|---|
 | NORMAL | 최근 폴링 성공, 사용률 < 80% | 정상 색 (브랜드 컬러) | 꺼짐 | 기본 주기(180s) | 실측 정상값: Claude 5h 4~34% |
 | WARN | 사용률 ≥ 80% | 경고 색 `#EBB13E` | 꺼짐 | 기본 주기 | 디자인 비주얼명 `low`(잔량≤20%와 동일 임계) |
-| CRITICAL | 사용률 ≥ 95% | 위험 색 `#E5484D` + 1.8s 펄스 | 꺼짐 | 기본 주기 | 사용률 100%면 비주얼 변형 `depleted`(링 빈 채 적색 트랙, 리셋시간 유지) |
+| CRITICAL | 잔량 ≤ 5% / 사용률 ≥ 95% | 위험 색 `#E5484D` + 절제된 1.8s 펄스 | 꺼짐 | 기본 주기 | 사용률 100%면 비주얼 변형 `depleted`(링 빈 채 적색 트랙, 리셋시간 유지) |
 | STALE | 마지막 성공 폴링 후 10분 경과 | 마지막 값 + 회색조/흐림 + "Nm ago" 배지 | stale 표시 | 계속 시도(기본 주기) | — |
 | NOT_LOGGED_IN | 토큰 파일/키체인 항목 없음 | 반투명(아크 opacity .16) | **ON** 호박색 키 램프 "Sign in" | 60초마다 존재 재확인 | macOS는 키체인 항목 부재 = 미로그인. Codex는 `auth_mode != "chatgpt"`도 포함 |
 | AUTH_ERROR | 토큰 만료 + 갱신 실패(401/403) | 반투명 | **ON** 적색 경고 삼각형 "Auth" | 백오프 후 재시도 | Codex 1h 만료는 정상이므로 refresh **성공** 시 절대 경고 금지 |
@@ -255,6 +255,7 @@ PoC에서 Ubuntu의 Claude access token이 만료 상태였다(§2.4-2). 선택�
 - AUTH_ERROR/NOT_LOGGED_IN에서 성공 응답 수신 → 즉시 NORMAL/WARN/CRITICAL 중 사용률에 맞는 상태로 복귀.
 - 시스템 절전 복귀·네트워크 복구 이벤트 → 즉시 1회 폴링(백오프 무시하되 RATE_LIMITED 중이면 백오프 유지).
 - 위젯 간 상태 독립: Claude AUTH_ERROR가 Codex/뽀모도로에 영향 주지 않는다.
+- CRITICAL 상태에서만 pulse 모션을 활성화한다. NORMAL/WARN/STALE/NOT_LOGGED_IN/AUTH_ERROR/RATE_LIMITED 및 Pomodoro 상태에는 적용하지 않는다.
 
 ### 5.3 비주얼-논리 매핑 (충돌 정리, §2.4-7)
 
@@ -326,7 +327,8 @@ PoC에서 Ubuntu의 Claude access token이 만료 상태였다(§2.4-2). 선택�
 |---|---|
 | 상태 전환 | 240ms `cubic-bezier(.4,0,.2,1)` |
 | Hover | 160ms 동일 ease — 글로우 + 디스크 상승, **스케일 변형 없음** |
-| CRITICAL 펄스 | 1.8s infinite, opacity 1→.82 + drop-shadow 0→3.5px — **유일한 상시 모션** |
+| CRITICAL 펄스 | 1800ms infinite, cubic-bezier(.45, 0, .2, 1), opacity 또는 glow 강도만 미세 변화 — **유일한 상시 모션** |
+| 모션 감소 | `@media (prefers-reduced-motion: reduce)` 환경에서는 CRITICAL pulse 비활성화 |
 | 그 외 | 상시 애니메이션 없음 (상주 앱 전력/주의 배려) |
 
 ### 6.4 동작 요구

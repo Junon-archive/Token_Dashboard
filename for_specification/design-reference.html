@@ -159,10 +159,13 @@
   .widget.depleted {--arc:var(--danger);--tm:rgba(229,72,77,.26)}
   .widget.break    {--arc:var(--pomo-break)}
 
-  .widget.critical .arc-main{animation:pulse 1.8s var(--ease) infinite}
-  @keyframes pulse{
-    0%,100%{opacity:1;filter:drop-shadow(0 0 0 transparent)}
-    50%{opacity:.82;filter:drop-shadow(0 0 3.5px var(--arc))}
+  .widget.critical .arc-main{animation:criticalPulse 1800ms cubic-bezier(.45,0,.2,1) infinite}
+  @keyframes criticalPulse{
+    0%,100%{opacity:.92;filter:drop-shadow(0 0 3px rgba(229,72,77,.34)) drop-shadow(0 0 7px rgba(229,72,77,.18))}
+    50%{opacity:1;filter:drop-shadow(0 0 5px rgba(229,72,77,.52)) drop-shadow(0 0 12px rgba(229,72,77,.28))}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .widget.critical .arc-main{animation:none}
   }
 
   .widget.stale{filter:grayscale(.55)}
@@ -290,7 +293,7 @@
       <tr><th>Trigger</th><th>Value</th></tr>
       <tr><td>상태 전환(색/오프셋/투명도)</td><td>240ms · <code>cubic-bezier(.4,0,.2,1)</code></td></tr>
       <tr><td>HOVER(글로우/디스크/텍스트)</td><td>160ms · <code>cubic-bezier(.4,0,.2,1)</code></td></tr>
-      <tr><td>CRITICAL 펄스</td><td>1.8s · ease-in-out · infinite · opacity 1→.82 + drop-shadow 0→3.5px (유일한 상시 모션)</td></tr>
+      <tr><td>CRITICAL 펄스</td><td>1800ms · cubic-bezier(.45,0,.2,1) · infinite · opacity/glow만 미세 변화 (유일한 상시 모션)</td></tr>
       <tr><td>그 외</td><td>상시 애니메이션 없음 (하루 종일 떠 있는 앱)</td></tr>
     </table>
   </div>
