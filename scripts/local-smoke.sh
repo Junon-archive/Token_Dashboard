@@ -12,5 +12,7 @@ if [[ "${CI:-}" == "true" ]]; then
 fi
 
 echo "Local-only smoke placeholder."
-echo "This script must print only masked metadata, HTTP status, schema shape, and normalized snapshots."
+echo "This script prints only normalized snapshots and sanitized status fields."
 echo "Do not print auth files, Authorization headers, access tokens, refresh tokens, ID tokens, or API keys."
+
+cargo run --manifest-path src-tauri/Cargo.toml --bin local_smoke -- "$@"

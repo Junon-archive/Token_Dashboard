@@ -2,11 +2,11 @@
 
 ## Current Status
 - Current milestone: M1 — Data Layer
-- Current task: Commit Codex direct endpoint research update
-- Last completed task: Confirmed Codex direct usage path and refresh host from `codex-check@1.3.13`
+- Current task: Commit local-only smoke runner
+- Last completed task: Added guarded local-only smoke binary and script wiring
 - Last command run: `cargo test --manifest-path src-tauri/Cargo.toml`
-- Last test result: Passed — 44 tests
-- Next recommended command: `git push`
+- Last test result: Passed — 47 tests
+- Next recommended command: `TOKEN_DASHBOARD_ALLOW_REAL_API=1 ./scripts/local-smoke.sh --provider all`
 - Blocking issue: Real Codex direct API smoke and 20-poll no-429 run are still local-only/manual; no real API calls were run in automated tests
 - Updated at: 2026-06-11 00:00 KST
 
@@ -41,7 +41,7 @@
 - [x] Implement token masking
 - [x] Add fixture tests
 - [x] Add local-only smoke script
-- [ ] Run tests
+- [x] Run tests
 - [ ] Commit M1
 
 ### M2 — Single Widget UI
@@ -146,6 +146,14 @@
 - Commands run: `npm view codex-check repository version dist.tarball`, `npm pack codex-check --pack-destination /tmp`, `rg`/`sed` over `/tmp/codex-check-1.3.13/package/index.mjs`, `cargo test --manifest-path src-tauri/Cargo.toml`
 - Result: 44 tests passed; confirmed usage path `/backend-api/wham/usage`, `ChatGPT-Account-Id` header, and refresh host `auth.openai.com/oauth/token`; no auth files read and no real API calls made
 - Next step: Commit and push this endpoint research update
+
+### 2026-06-11 00:00
+- Agent: main
+- Task: Add local-only smoke runner
+- Files changed: `src-tauri/src/bin/local_smoke.rs`, `scripts/local-smoke.sh`, `roadmap.md`
+- Commands run: `cargo fmt --manifest-path src-tauri/Cargo.toml`, `cargo test --manifest-path src-tauri/Cargo.toml`, `./scripts/local-smoke.sh --provider codex`
+- Result: 47 tests passed; smoke script refuses to run without `TOKEN_DASHBOARD_ALLOW_REAL_API=1`; no real auth files or APIs were touched
+- Next step: Commit smoke runner, then request permission to run one-shot real local smoke
 
 ## Known Issues
 | Issue | Severity | Status | Next Action |
