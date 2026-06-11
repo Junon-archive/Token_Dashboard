@@ -80,7 +80,26 @@ struct ClaudeOauthJson {
     #[serde(rename = "refreshToken")]
     refresh_token: Option<String>,
     #[serde(rename = "expiresAt")]
+    #[serde(default, deserialize_with = "deserialize_claude_expires_at")]
     expires_at: Option<String>,
+}
+
+fn deserialize_claude_expires_at<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum ExpiresAt {
+        String(String),
+        Number(i64),
+    }
+
+    match Option::<ExpiresAt>::deserialize(deserializer)? {
+        Some(ExpiresAt::String(value)) => Ok(Some(value)),
+        Some(ExpiresAt::Number(value)) => Ok(Some(value.to_string())),
+        None => Ok(None),
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -242,6 +261,18 @@ mod tests {
         assert_eq!(parsed.access_token, "synthetic-access");
         assert_eq!(parsed.refresh_token.as_deref(), Some("synthetic-refresh"));
         assert_eq!(parsed.expires_at.as_deref(), Some("2026-06-10T13:40:00Z"));
+    }
+
+    #[test]
+    fn parses_claude_credentials_with_numeric_expires_at() {
+        let parsed = parse_claude_credentials(
+            r#"{"claudeAiOauth":{"accessToken":"synthetic-access","refreshToken":"synthetic-refresh","expiresAt":1781185308640}}"#,
+        )
+        .unwrap();
+
+        assert_eq!(parsed.access_token, "synthetic-access");
+        assert_eq!(parsed.refresh_token.as_deref(), Some("synthetic-refresh"));
+        assert_eq!(parsed.expires_at.as_deref(), Some("1781185308640"));
     }
 
     #[test]

@@ -2,13 +2,13 @@
 
 ## Current Status
 - Current milestone: M1 — Data Layer
-- Current task: Summarize completed smoke results and decide whether to retry Claude
-- Last completed task: Finished guarded long-running Codex smoke
-- Last command run: `env TOKEN_DASHBOARD_ALLOW_REAL_API=1 ./scripts/local-smoke.sh --provider codex --polls 20 --interval-sec 180`
-- Last test result: Passed — 57 tests; Codex 20-poll completed with WARN snapshots throughout; Claude smoke returned AUTH_ERROR
-- Next recommended command: `TOKEN_DASHBOARD_ALLOW_REAL_API=1 ./scripts/local-smoke.sh --provider claude`
-- Blocking issue: Claude local account still returns AUTH_ERROR; macOS Keychain Security framework first path is not implemented on Ubuntu
-- Updated at: 2026-06-11 10:34 KST
+- Current task: Record Claude parser fix and verified smoke
+- Last completed task: Fixed Claude `expiresAt` numeric parsing and verified successful smoke
+- Last command run: `TOKEN_DASHBOARD_ALLOW_REAL_API=1 /home/junon/Token_Dashboard/scripts/local-smoke.sh --provider claude`
+- Last test result: Passed — 49 tests; Claude smoke returned NORMAL, Codex remained verified
+- Next recommended command: `TOKEN_DASHBOARD_ALLOW_REAL_API=1 ./scripts/local-smoke.sh --provider codex --polls 20 --interval-sec 180`
+- Blocking issue: macOS Keychain Security framework first path is not implemented on Ubuntu
+- Updated at: 2026-06-11 05:47 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -181,13 +181,21 @@
 - Result: Session `57479` completed; all 20 polls returned WARN snapshots, without printing tokens or auth files
 - Next step: Decide whether Claude should be retried after a CLI relogin or whether to proceed to remaining M1 non-account checks
 
+### 2026-06-11 05:47 UTC
+- Agent: main
+- Task: Diagnose Claude smoke AUTH_ERROR and verify after parser fix
+- Files changed: `src-tauri/src/token_source.rs`, `roadmap.md`
+- Commands run: `cargo test --manifest-path src-tauri/Cargo.toml`, `TOKEN_DASHBOARD_ALLOW_REAL_API=1 /home/junon/Token_Dashboard/scripts/local-smoke.sh --provider claude`
+- Result: Claude `expiresAt` parsed as numeric epoch milliseconds; smoke now returns `NORMAL` with populated primary/secondary windows and no token output
+- Next step: Commit parser fix and smoke verification, then reassess whether any M1 gaps remain beyond Ubuntu-only platform verification
+
 ## Known Issues
 | Issue | Severity | Status | Next Action |
 |---|---|---|---|
 | Codex direct usage endpoint path is not confirmed from PoC | High | Resolved by source analysis | Default to `/backend-api/wham/usage`; still requires local-only real API smoke |
 | Codex refresh host/client metadata is not confirmed | High | Resolved by source analysis | `auth.openai.com/oauth/token` and client metadata from codex-check 1.3.13; refresh is memory-only and fixture-tested |
 | Claude refresh host/client metadata is undocumented | High | Resolved by local CLI static analysis | `platform.claude.com/v1/oauth/token` and client metadata from installed Claude CLI 2.1.170; refresh is memory-only and fixture-tested |
-| Claude local smoke returns AUTH_ERROR | Medium | Open | Re-run after `claude` CLI refresh/relogin or inspect non-secret response status locally; provider safely degrades |
+| Claude local smoke returns AUTH_ERROR | Low | Resolved | Fixed numeric `expiresAt` parsing; smoke now returns `NORMAL` |
 | Codex 20-poll smoke is complete | Low | Done | Recorded as WARN throughout; no 429 observed in the captured run |
 | macOS Keychain cannot be verified on current Ubuntu environment | Medium | Open | Implement macOS-gated source with `security` fallback and document manual verification |
 | 20-poll no-429 run is not completed | Medium | Open | Add local-only script/checklist; do not run in CI |
