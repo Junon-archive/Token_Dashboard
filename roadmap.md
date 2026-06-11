@@ -2,13 +2,14 @@
 
 ## Current Status
 - Current milestone: M2 — Single Widget UI
-- Current task: Prepare M2 implementation start
-- Last completed task: Closed out M1 after verifying Claude/Codex smoke and parsing fix
-- Last command run: `TOKEN_DASHBOARD_ALLOW_REAL_API=1 /home/junon/Token_Dashboard/scripts/local-smoke.sh --provider claude`
-- Last test result: Passed — 49 tests; Claude smoke returned NORMAL, Codex remained verified
-- Next recommended command: `git status`
-- Blocking issue: macOS Keychain Security framework first path is not implemented on Ubuntu, but M1 is complete
-- Updated at: 2026-06-11 05:47 UTC
+- Current task: M2 remains pending Linux X11 visual verification; M3 Codex widget prep is allowed only where it does not depend on the blocked GUI check
+- Last completed task: Generalized the frontend usage widget renderer for Claude/Codex provider views
+- Last command run: `npm test`, `npm run build`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Last test result: Passed — `npm run build`, frontend Node tests, Rust fmt check, Rust 49 lib tests, 4 smoke tests, 5 contract tests. GUI smoke remains blocked in the current TTY session because `DISPLAY` is unset.
+- Next recommended command: `npm run build && npm test && cargo test --manifest-path src-tauri/Cargo.toml`
+- Blocking issue: Linux X11 visual verification is pending; current session is `XDG_SESSION_TYPE=tty` with no `DISPLAY`. Do not mark or commit M2 complete until that check is done.
+- Git status note: M2/M3-prep frontend/Tauri files are still uncommitted; `.codex/` remains local untracked tooling config and should not be committed.
+- Updated at: 2026-06-11 15:10 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -24,6 +25,8 @@
 | 2026-06-11 | Automatic tests use fixtures only; real API checks are local-only scripts | CI must not call real APIs or print auth material | SPEC.md §§2, 10 |
 | 2026-06-11 | Add source-backed refresh retry for Claude and Codex, but keep refreshed tokens memory-only | Claude CLI 2.1.170 and codex-check 1.3.13 expose refresh endpoint/client metadata; SPEC forbids writing CLI-owned auth files | `src-tauri/src/refresh.rs`, `src-tauri/src/providers/claude.rs`, `src-tauri/src/providers/codex.rs` |
 | 2026-06-11 | Reject token-like material in app config on load/write | Unknown config keys are preserved only when they do not contain token-like keys or Bearer strings | `src-tauri/src/config.rs` |
+| 2026-06-11 | Keep hover disk/glow effects disabled on Linux transparent WebKit, but expose last update age on hover | Manual M2 checks showed persistent transparent-window artifacts from disk/shadow hover effects; UI-5 still needs a hover-accessible update age | `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/src/widget.js`, `frontend/tests/widget.test.mjs` |
+| 2026-06-11 | Generalize the usage widget renderer before adding the full Codex widget | This is safe while M2 visual verification is blocked because it is frontend-only, provider-neutral, and covered by Node DOM tests | `frontend/src/widget.js`, `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
 
 ## Milestone Checklist
 
@@ -47,15 +50,17 @@
 - [x] Commit M1
 
 ### M2 — Single Widget UI
-- [ ] Implement transparent Tauri window
-- [ ] Implement Claude widget rendering
-- [ ] Implement design tokens
-- [ ] Implement 7 logical state visual mapping
-- [ ] Add mock provider UI tests
+- [x] Implement transparent Tauri window
+- [x] Implement Claude widget rendering
+- [x] Implement design tokens
+- [x] Implement 7 logical state visual mapping
+- [x] Add mock provider UI tests
+- [x] Add hover-accessible last update display
 - [ ] Verify Linux X11 behavior where possible
 - [ ] Commit M2
 
 ### M3 — Three Widgets and Settings
+- [x] Generalize usage widget renderer for Claude/Codex provider views
 - [ ] Add Codex widget
 - [ ] Add Pomodoro widget
 - [ ] Add settings window
@@ -189,6 +194,103 @@
 - Result: Claude `expiresAt` parsed as numeric epoch milliseconds; smoke now returns `NORMAL` with populated primary/secondary windows and no token output
 - Next step: Commit parser fix and smoke verification, then reassess whether any M1 gaps remain beyond Ubuntu-only platform verification
 
+### 2026-06-11 07:02 UTC
+- Agent: main + ui-ux-specialist + platform-specialist + test-specialist
+- Task: Start M2 Claude single-widget UI
+- Files changed: `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/build.rs`, `src-tauri/src/main.rs`, `src-tauri/tauri.conf.json`, `src-tauri/icons/icon.png`, `index.html`, `package.json`, `frontend/src/*`, `frontend/tests/widget.test.mjs`, `scripts/build-frontend.mjs`, `.gitignore`, `roadmap.md`
+- Commands run: `npm run build`, `npm test`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Added Tauri 2 transparent always-on-top Claude window shell with Linux DMABUF env guard; rendered Claude gauge from mock snapshot; added CI-safe Node DOM/state tests covering 7 logical states, depleted variant, stale badge, lamps, remaining-quota arcs, and Critical-only reduced-motion pulse guard; short GUI smoke ran until timeout without panic after replacing the placeholder icon
+- Next step: Perform visual Linux X11 check for transparency/always-on-top/skip-taskbar/drag, then commit M2 checkpoint
+
+### 2026-06-11 07:14 UTC
+- Agent: main
+- Task: Address M2 visual smoke feedback
+- Files changed: `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Removed runtime hover disk/arc styling that made the transparent widget appear opaque after mouseover; added `data-tauri-drag-region="deep"` so Tauri's Linux drag-region handler can move the frameless widget
+- Next step: Re-run manual visual check for hover transparency reset and drag movement
+
+### 2026-06-11 07:24 UTC
+- Agent: main
+- Task: Refine M2 hover and drag behavior after manual check
+- Files changed: `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `src-tauri/capabilities/default.json`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`, `timeout 5 cargo run --manifest-path src-tauri/Cargo.toml --bin token-dashboard`
+- Result: Restored hover visual feedback through `.is-hovered` so it can be explicitly cleared on pointer leave/window blur; added direct `startDragging()` call on left mousedown and granted `core:window:allow-start-dragging`
+- Next step: Re-run manual visual check for hover reset and drag movement
+
+### 2026-06-11 07:31 UTC
+- Agent: main
+- Task: Make hover reset immediate after manual check
+- Files changed: `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Added mouse leave listeners alongside pointer leave and removed hover background/filter/color transitions, so leaving the widget restores the initial translucent appearance immediately
+- Next step: Re-run manual visual check for immediate hover reset
+
+### 2026-06-11 07:36 UTC
+- Agent: main
+- Task: Remove hover artifacts from transparent window
+- Files changed: `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Removed hover `box-shadow` and `drop-shadow` effects that were accumulating in the transparent WebKit window; hover now only darkens the disk interior and brightens the number
+- Next step: Re-run manual visual check for hover reset without residual shadow
+
+### 2026-06-11 07:41 UTC
+- Agent: main
+- Task: Disable persistent hover visuals on transparent WebKit
+- Files changed: `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Removed the remaining `.is-hovered` disk/text styling because even interior background changes persisted visually in the transparent Linux WebKit window; drag behavior remains intact
+- Next step: Re-run manual visual check for stable initial translucency while moving the mouse across the widget
+
+### 2026-06-11 07:45 UTC
+- Agent: main
+- Task: Improve tick mark visibility on light backgrounds
+- Files changed: `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`
+- Result: Increased tick opacity from `.16` to `.34` and stroke width from `1` to `1.35` to keep the gauge texture visible against bright desktop backgrounds
+- Next step: Re-run manual visual check on bright and dark backgrounds
+
+### 2026-06-11 07:48 UTC
+- Agent: main
+- Task: Increase tick mark contrast further
+- Files changed: `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`
+- Result: Increased tick opacity to `.46` and stroke width to `1.5` after manual light-background review
+- Next step: Re-run manual visual check on bright and dark backgrounds
+
+### 2026-06-11 07:52 UTC
+- Agent: main
+- Task: Soften widget disk edge on light backgrounds
+- Files changed: `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`
+- Result: Replaced the hard disk fill and border with a radial gradient that fades the disk edge to transparent without using shadow/filter effects
+- Next step: Re-run manual visual check on bright and dark backgrounds
+
+### 2026-06-11 07:57 UTC
+- Agent: main
+- Task: Make disk edge fade affect backdrop blur
+- Files changed: `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`
+- Result: Replaced the background-only gradient with a radial mask so the disk fill and backdrop blur fade out together at the edge
+- Next step: Re-run manual visual check on bright and dark backgrounds
+
+### 2026-06-11 15:02 UTC
+- Agent: main + main-planner/ui-ux-specialist/platform-specialist/test-specialist read-only subagents
+- Task: Reconcile SPEC, roadmap, and actual M2 implementation state
+- Files changed: `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm run build`, `npm test`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`, `timeout 5 cargo run --manifest-path src-tauri/Cargo.toml --bin token-dashboard`, `printenv DISPLAY`, `printenv XDG_SESSION_TYPE`
+- Result: Automatic M2/M1 tests pass. Added hover-accessible update age badge while keeping disk/glow hover effects disabled to avoid transparent WebKit artifacts. GUI smoke could not initialize GTK because the current session is `tty` and `DISPLAY` is unset.
+- Next step: Run Linux X11 visual verification from a graphical session, then commit the M2 checkpoint.
+
+### 2026-06-11 15:10 UTC
+- Agent: main + ui-ux-specialist/test-specialist read-only subagents
+- Task: Prepare M3 Codex widget work by generalizing the M2 usage widget renderer only
+- Files changed: `frontend/src/widget.js`, `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Added `renderUsageWidget()` and provider view metadata for Claude/Codex, kept `renderClaudeWidget()` as a compatibility wrapper, added Codex brand CSS tokens, switched the runtime entry to the generic renderer, and expanded Node tests for Codex DOM, provider-neutral state classes, missing secondary window, missing primary window, invalid `fetched_at`, and runtime import binding.
+- Git note: This M2 shell plus M3-prep renderer generalization was committed with message `feat: add single widget shell`. `.codex/` remains local tooling config and must stay out of commits.
+- Next step: Either run the pending Linux X11 visual verification and commit the M2 checkpoint, or continue with the actual M3 Codex widget using the generic renderer.
+
 ## Known Issues
 | Issue | Severity | Status | Next Action |
 |---|---|---|---|
@@ -198,7 +300,8 @@
 | Claude local smoke returns AUTH_ERROR | Low | Resolved | Fixed numeric `expiresAt` parsing; smoke now returns `NORMAL` |
 | Codex 20-poll smoke is complete | Low | Done | Recorded as WARN throughout; no 429 observed in the captured run |
 | macOS Keychain cannot be verified on current Ubuntu environment | Medium | Open | Implement macOS-gated source with `security` fallback and document manual verification |
-| 20-poll no-429 run is not completed | Medium | Open | Add local-only script/checklist; do not run in CI |
+| Linux X11 visual verification cannot run in current session | High | Open | Re-run `timeout 5 cargo run --manifest-path src-tauri/Cargo.toml --bin token-dashboard` from an X11 desktop session with `DISPLAY` set, then verify transparency, always-on-top, skip-taskbar, and drag by sight. |
+| M2 visual tuning intentionally diverges from design-reference token literals | Medium | Open | Manual bright-background review increased tick contrast and replaced the disk border with a radial mask; either accept this as an implementation decision or revise back to exact SPEC token values before M2 commit. |
 
 ## Resume Instructions
 If the session is interrupted, resume by:

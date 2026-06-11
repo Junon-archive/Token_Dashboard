@@ -1,0 +1,143 @@
+const CX = 70;
+const CY = 70;
+const MAIN_R = 55;
+const SEC_R = 43;
+const C_MAIN = 2 * Math.PI * MAIN_R;
+const C_SEC = 2 * Math.PI * SEC_R;
+const TICK_N = 48;
+const TICK_RI = 62.5;
+const TICK_RO = 66;
+
+const LAMP_KEY =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="4.2"/><path d="M11 11l8 8"/><path d="M16 16l2.2-2.2"/><path d="M18.2 18.2l1.6-1.6"/></svg>';
+const LAMP_BANG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5L22 20H2L12 3.5z"/><path d="M12 9.5v4.4"/><path d="M12 17.4v.1"/></svg>';
+const CLOCK =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+
+const PROVIDERS = {
+  claude: {
+    className: 'claude',
+    label: 'Claude',
+    ariaLabel: 'Claude usage widget',
+  },
+  codex: {
+    className: 'codex',
+    label: 'Codex',
+    ariaLabel: 'Codex usage widget',
+  },
+};
+
+export function providerView(provider) {
+  return PROVIDERS[String(provider ?? '').toLowerCase()] ?? PROVIDERS.claude;
+}
+
+export function visualClassForSnapshot(snapshot) {
+  const usedPct = snapshot.primary?.used_pct;
+  switch (snapshot.state) {
+    case 'NORMAL':
+      return '';
+    case 'WARN':
+      return 'low';
+    case 'CRITICAL':
+      return usedPct >= 100 ? 'depleted' : 'critical';
+    case 'STALE':
+    case 'RATE_LIMITED':
+      return 'stale';
+    case 'NOT_LOGGED_IN':
+      return 'notin';
+    case 'AUTH_ERROR':
+      return 'autherr';
+    default:
+      return 'stale';
+  }
+}
+
+export function ticksSvg() {
+  let output = '';
+  for (let i = 0; i < TICK_N; i += 1) {
+    const angle = (i / TICK_N) * Math.PI * 2;
+    const sx = CX + TICK_RI * Math.sin(angle);
+    const sy = CY - TICK_RI * Math.cos(angle);
+    const ex = CX + TICK_RO * Math.sin(angle);
+    const ey = CY - TICK_RO * Math.cos(angle);
+    output += `<line class="tick" x1="${sx.toFixed(2)}" y1="${sy.toFixed(2)}" x2="${ex.toFixed(2)}" y2="${ey.toFixed(2)}"/>`;
+  }
+  return output;
+}
+
+export function remainingFraction(window) {
+  if (!window || !Number.isFinite(window.used_pct)) {
+    return 0.5;
+  }
+  return Math.max(0, Math.min(1, 1 - window.used_pct / 100));
+}
+
+function arcsSvg(primary, secondary) {
+  const mainRemaining = remainingFraction(primary);
+  const mainOffset = (C_MAIN * (1 - mainRemaining)).toFixed(2);
+  let output = `<g transform="rotate(-90 ${CX} ${CY})">`;
+  output += `<circle class="ring-track-main" cx="${CX}" cy="${CY}" r="${MAIN_R}"/>`;
+  output += `<circle class="arc-main" cx="${CX}" cy="${CY}" r="${MAIN_R}" stroke-dasharray="${C_MAIN.toFixed(2)}" stroke-dashoffset="${mainOffset}"/>`;
+  if (secondary) {
+    const secRemaining = remainingFraction(secondary);
+    const secOffset = (C_SEC * (1 - secRemaining)).toFixed(2);
+    output += `<circle class="ring-track-sec" cx="${CX}" cy="${CY}" r="${SEC_R}"/>`;
+    output += `<circle class="arc-sec" cx="${CX}" cy="${CY}" r="${SEC_R}" stroke-dasharray="${C_SEC.toFixed(2)}" stroke-dashoffset="${secOffset}"/>`;
+  }
+  output += '</g>';
+  return output;
+}
+
+export function formatResetCountdown(resetsAt, now = new Date()) {
+  const resetMs = new Date(resetsAt).getTime();
+  if (!Number.isFinite(resetMs)) {
+    return '--:--';
+  }
+  const totalMinutes = Math.max(0, Math.ceil((resetMs - now.getTime()) / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}:${String(minutes).padStart(2, '0')}`;
+}
+
+export function staleAgeLabel(fetchedAt, now = new Date()) {
+  const fetchedMs = new Date(fetchedAt).getTime();
+  if (!Number.isFinite(fetchedMs)) {
+    return 'stale';
+  }
+  const minutes = Math.max(0, Math.floor((now.getTime() - fetchedMs) / 60000));
+  return `${minutes}m ago`;
+}
+
+function lampForSnapshot(snapshot) {
+  if (snapshot.state === 'NOT_LOGGED_IN') {
+    return { icon: LAMP_KEY, text: 'Sign in' };
+  }
+  if (snapshot.state === 'AUTH_ERROR') {
+    return { icon: LAMP_BANG, text: 'Auth' };
+  }
+  return { icon: '', text: '' };
+}
+
+export function renderUsageWidget(snapshot, options = {}) {
+  const now = options.now ?? new Date();
+  const provider = providerView(options.provider ?? snapshot.provider);
+  const classes = ['widget', provider.className, visualClassForSnapshot(snapshot)].filter(Boolean).join(' ');
+  const countdown = formatResetCountdown(snapshot.primary?.resets_at, now);
+  const lamp = lampForSnapshot(snapshot);
+
+  return `<section class="${classes}" data-provider="${provider.className}" data-state="${snapshot.state}" data-tauri-drag-region="deep" aria-label="${provider.ariaLabel}">
+    <div class="disk"></div>
+    <svg class="gauge" viewBox="0 0 140 140" aria-hidden="true">${ticksSvg()}${arcsSvg(snapshot.primary, snapshot.secondary)}</svg>
+    <div class="center">
+      <div class="num">${countdown}</div>
+      <div class="lbl">${provider.label}</div>
+      <div class="lamp">${lamp.icon}<span class="lt">${lamp.text}</span></div>
+    </div>
+    <div class="update-badge">${CLOCK}<span>${staleAgeLabel(snapshot.fetched_at, now)}</span></div>
+  </section>`;
+}
+
+export function renderClaudeWidget(snapshot, options = {}) {
+  return renderUsageWidget({ ...snapshot, provider: 'claude' }, options);
+}
