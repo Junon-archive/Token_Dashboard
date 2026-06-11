@@ -1,5 +1,8 @@
 use serde::Deserialize;
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -109,6 +112,71 @@ pub fn read_file(path: PathBuf) -> Result<String, TokenSourceError> {
     })
 }
 
+pub fn default_codex_auth_path() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".codex")
+        .join("auth.json")
+}
+
+#[cfg(target_os = "linux")]
+pub fn default_claude_credentials_path() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".claude")
+        .join(".credentials.json")
+}
+
+pub fn read_codex_credentials_from_path(
+    path: &Path,
+) -> Result<(CodexCredentials, Option<FilePermissionWarning>), TokenSourceError> {
+    let warning = permission_warning_if_broader_than_600(path.to_path_buf());
+    let raw = read_file(path.to_path_buf())?;
+    Ok((parse_codex_credentials(&raw)?, warning))
+}
+
+#[cfg(target_os = "linux")]
+pub fn read_claude_credentials_default(
+) -> Result<(ClaudeCredentials, Option<FilePermissionWarning>), TokenSourceError> {
+    read_claude_credentials_from_path(&default_claude_credentials_path())
+}
+
+#[cfg(target_os = "linux")]
+pub fn read_claude_credentials_from_path(
+    path: &Path,
+) -> Result<(ClaudeCredentials, Option<FilePermissionWarning>), TokenSourceError> {
+    let warning = permission_warning_if_broader_than_600(path.to_path_buf());
+    let raw = read_file(path.to_path_buf())?;
+    Ok((parse_claude_credentials(&raw)?, warning))
+}
+
+#[cfg(target_os = "macos")]
+pub fn read_claude_credentials_default(
+) -> Result<(ClaudeCredentials, Option<FilePermissionWarning>), TokenSourceError> {
+    let output = std::process::Command::new("security")
+        .args([
+            "find-generic-password",
+            "-s",
+            "Claude Code-credentials",
+            "-w",
+        ])
+        .output()
+        .map_err(|_| TokenSourceError::ReadFailed)?;
+
+    if !output.status.success() {
+        return Err(TokenSourceError::Missing);
+    }
+
+    let raw = String::from_utf8(output.stdout).map_err(|_| TokenSourceError::InvalidSchema)?;
+    Ok((parse_claude_credentials(&raw)?, None))
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+pub fn read_claude_credentials_default(
+) -> Result<(ClaudeCredentials, Option<FilePermissionWarning>), TokenSourceError> {
+    Err(TokenSourceError::Missing)
+}
+
 #[cfg(unix)]
 pub fn permission_warning_if_broader_than_600(path: PathBuf) -> Option<FilePermissionWarning> {
     use std::os::unix::fs::PermissionsExt;
@@ -161,6 +229,35 @@ mod tests {
         );
 
         assert_eq!(result, Err(TokenSourceError::UnsupportedAuthMode));
+    }
+
+    #[test]
+    fn reads_codex_credentials_from_explicit_synthetic_file() {
+        let temp = tempfile::NamedTempFile::new().unwrap();
+        fs::write(
+            temp.path(),
+            r#"{"auth_mode":"chatgpt","tokens":{"access_token":"synthetic-access","refresh_token":"synthetic-refresh","account_id":"synthetic-account"}}"#,
+        )
+        .unwrap();
+
+        let (credentials, _warning) = read_codex_credentials_from_path(temp.path()).unwrap();
+
+        assert_eq!(credentials.access_token, "synthetic-access");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn reads_claude_credentials_from_explicit_synthetic_file() {
+        let temp = tempfile::NamedTempFile::new().unwrap();
+        fs::write(
+            temp.path(),
+            r#"{"claudeAiOauth":{"accessToken":"synthetic-access","expiresAt":"2026-06-10T13:40:00Z"}}"#,
+        )
+        .unwrap();
+
+        let (credentials, _warning) = read_claude_credentials_from_path(temp.path()).unwrap();
+
+        assert_eq!(credentials.access_token, "synthetic-access");
     }
 
     #[cfg(unix)]

@@ -2,10 +2,10 @@
 
 ## Current Status
 - Current milestone: M1 — Data Layer
-- Current task: Commit provider HTTP abstraction checkpoint
-- Last completed task: Added allowlisted HTTP abstraction and fixture-backed provider orchestration
+- Current task: Commit token source reader checkpoint
+- Last completed task: Added read-only token source readers for Codex file, Linux Claude file, and macOS Claude security CLI path
 - Last command run: `cargo test --manifest-path src-tauri/Cargo.toml`
-- Last test result: Passed — 32 tests
+- Last test result: Passed — 34 tests
 - Next recommended command: `cargo test --manifest-path src-tauri/Cargo.toml`
 - Blocking issue: Codex direct usage endpoint/path and refresh host remain unverified; implement overrideable structure and local-only smoke script first
 - Updated at: 2026-06-11 00:00 KST
@@ -105,6 +105,14 @@
 - Commands run: `cargo fmt --manifest-path src-tauri/Cargo.toml`, `cargo test --manifest-path src-tauri/Cargo.toml`
 - Result: 32 tests passed; HTTP clients validate endpoint allowlist before attaching bearer tokens; provider status mapping tested with fixture client only
 - Next step: Commit provider HTTP checkpoint, then implement config persistence defaults/clamp/corrupt recovery tests
+
+### 2026-06-11 00:00
+- Agent: main
+- Task: Add read-only token source readers
+- Files changed: `src-tauri/src/token_source.rs`, `roadmap.md`
+- Commands run: `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: 34 tests passed; synthetic temp-file tests cover Codex and Linux Claude readers without reading real auth files; macOS Claude uses `security` CLI path with no file fallback
+- Next step: Commit token source checkpoint, then add config persistence defaults/clamp/corrupt recovery tests
 
 ## Known Issues
 | Issue | Severity | Status | Next Action |
