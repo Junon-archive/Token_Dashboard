@@ -1,5 +1,6 @@
 pub mod backoff;
 pub mod config;
+pub mod http;
 pub mod masking;
 pub mod providers;
 pub mod refresh_cache;

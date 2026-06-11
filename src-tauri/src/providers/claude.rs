@@ -4,6 +4,7 @@ use serde::Deserialize;
 
 use crate::{
     config::EndpointConfig,
+    http::{SafeHeader, UsageHttpClient},
     providers::{validate_usage_endpoint, ProviderError, UsageProvider},
     snapshot::{ExtraUsage, ProviderKind, UsageSnapshot, UsageWindow},
     state::state_for_success,
@@ -21,6 +22,36 @@ impl UsageProvider for ClaudeProvider {
     async fn snapshot(&self, endpoints: &EndpointConfig) -> Result<UsageSnapshot, ProviderError> {
         validate_usage_endpoint(&endpoints.claude_usage)?;
         Err(ProviderError::Network)
+    }
+}
+
+impl ClaudeProvider {
+    pub async fn snapshot_with_http(
+        &self,
+        endpoints: &EndpointConfig,
+        access_token: &str,
+        http: &dyn UsageHttpClient,
+    ) -> Result<UsageSnapshot, ProviderError> {
+        validate_usage_endpoint(&endpoints.claude_usage)?;
+        let headers = [
+            SafeHeader {
+                name: "anthropic-beta".to_string(),
+                value: endpoints.claude_beta_header.clone(),
+            },
+            SafeHeader {
+                name: "User-Agent".to_string(),
+                value: "claude-code/2.1.138 token-dashboard/0.1.0".to_string(),
+            },
+        ];
+        let response = http
+            .get_with_bearer(&endpoints.claude_usage, access_token, &headers)
+            .await?;
+        match response.status {
+            200 => parse_claude_usage(&response.body),
+            401 | 403 => Err(ProviderError::AuthError),
+            429 => Err(ProviderError::RateLimited),
+            _ => Err(ProviderError::Network),
+        }
     }
 }
 
@@ -109,5 +140,28 @@ mod tests {
             r#"{"seven_day":{"utilization":8.0,"resets_at":"2026-06-16T11:00:00.531748+00:00"}}"#,
         );
         assert!(matches!(result, Err(ProviderError::SchemaMismatch)));
+    }
+
+    #[tokio::test]
+    async fn provider_maps_http_status_without_real_api() {
+        use crate::http::testsupport::FixtureHttpClient;
+
+        let provider = ClaudeProvider;
+        let endpoints = EndpointConfig::default();
+        let auth = FixtureHttpClient::new(403, "{}");
+        let rate = FixtureHttpClient::new(429, "{}");
+
+        assert!(matches!(
+            provider
+                .snapshot_with_http(&endpoints, "synthetic-access", &auth)
+                .await,
+            Err(ProviderError::AuthError)
+        ));
+        assert!(matches!(
+            provider
+                .snapshot_with_http(&endpoints, "synthetic-access", &rate)
+                .await,
+            Err(ProviderError::RateLimited)
+        ));
     }
 }

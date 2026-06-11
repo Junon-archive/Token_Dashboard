@@ -3,6 +3,7 @@ use thiserror::Error;
 
 use crate::{
     config::{validate_endpoint_url, EndpointConfig, EndpointError},
+    http::UsageHttpError,
     snapshot::{ProviderKind, UsageSnapshot, UsageState},
 };
 
@@ -26,6 +27,8 @@ pub enum ProviderError {
     EndpointRejected(#[from] EndpointError),
     #[error("network request failed")]
     Network,
+    #[error("http request failed: {0}")]
+    Http(#[from] UsageHttpError),
 }
 
 #[async_trait]
@@ -41,7 +44,8 @@ pub fn degraded(provider: ProviderKind, error: ProviderError) -> UsageSnapshot {
         ProviderError::RateLimited => UsageState::RateLimited,
         ProviderError::SchemaMismatch
         | ProviderError::EndpointRejected(_)
-        | ProviderError::Network => UsageState::Stale,
+        | ProviderError::Network
+        | ProviderError::Http(_) => UsageState::Stale,
     };
 
     UsageSnapshot::degraded(provider, state, error.to_string())

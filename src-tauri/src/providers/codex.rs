@@ -4,6 +4,7 @@ use serde::Deserialize;
 
 use crate::{
     config::{join_codex_usage_url, EndpointConfig},
+    http::UsageHttpClient,
     providers::{ProviderError, UsageProvider},
     snapshot::{ProviderKind, UsageSnapshot, UsageWindow},
     state::state_for_success,
@@ -26,6 +27,27 @@ impl UsageProvider for CodexProvider {
             return Err(ProviderError::SchemaMismatch);
         };
         Err(ProviderError::Network)
+    }
+}
+
+impl CodexProvider {
+    pub async fn snapshot_with_http(
+        &self,
+        endpoints: &EndpointConfig,
+        access_token: &str,
+        http: &dyn UsageHttpClient,
+    ) -> Result<UsageSnapshot, ProviderError> {
+        let Some(url) = join_codex_usage_url(endpoints)? else {
+            return Err(ProviderError::SchemaMismatch);
+        };
+
+        let response = http.get_with_bearer(&url, access_token, &[]).await?;
+        match response.status {
+            200 => parse_codex_usage(&response.body),
+            401 | 403 => Err(ProviderError::AuthError),
+            429 => Err(ProviderError::RateLimited),
+            _ => Err(ProviderError::Network),
+        }
     }
 }
 
@@ -151,5 +173,45 @@ mod tests {
         .unwrap();
         assert_eq!(snapshot.primary.unwrap().used_pct, 45.0);
         assert_eq!(snapshot.secondary.unwrap().used_pct, 23.0);
+    }
+
+    #[tokio::test]
+    async fn provider_uses_override_path_and_fixture_http_without_real_api() {
+        use crate::http::testsupport::FixtureHttpClient;
+
+        let provider = CodexProvider;
+        let endpoints = EndpointConfig {
+            codex_usage_path: Some("/backend-api/synthetic-usage".to_string()),
+            ..EndpointConfig::default()
+        };
+        let http =
+            FixtureHttpClient::new(200, include_str!("../../tests/fixtures/codex_usage.json"));
+
+        let snapshot = provider
+            .snapshot_with_http(&endpoints, "synthetic-access", &http)
+            .await
+            .unwrap();
+
+        assert_eq!(snapshot.provider, ProviderKind::Codex);
+        assert_eq!(http.requests().len(), 1);
+        assert!(http.requests()[0].bearer_was_attached);
+    }
+
+    #[tokio::test]
+    async fn provider_rejects_unverified_missing_usage_path() {
+        use crate::http::testsupport::FixtureHttpClient;
+
+        let provider = CodexProvider;
+        let endpoints = EndpointConfig::default();
+        let http =
+            FixtureHttpClient::new(200, include_str!("../../tests/fixtures/codex_usage.json"));
+
+        assert!(matches!(
+            provider
+                .snapshot_with_http(&endpoints, "synthetic-access", &http)
+                .await,
+            Err(ProviderError::SchemaMismatch)
+        ));
+        assert!(http.requests().is_empty());
     }
 }

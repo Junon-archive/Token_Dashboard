@@ -2,10 +2,10 @@
 
 ## Current Status
 - Current milestone: M1 — Data Layer
-- Current task: Commit first M1 data-layer checkpoint
-- Last completed task: Added Rust data-layer scaffold, fixtures, parser/state/backoff/masking/endpoint allowlist/runtime/cache tests
+- Current task: Commit provider HTTP abstraction checkpoint
+- Last completed task: Added allowlisted HTTP abstraction and fixture-backed provider orchestration
 - Last command run: `cargo test --manifest-path src-tauri/Cargo.toml`
-- Last test result: Passed — 28 tests
+- Last test result: Passed — 32 tests
 - Next recommended command: `cargo test --manifest-path src-tauri/Cargo.toml`
 - Blocking issue: Codex direct usage endpoint/path and refresh host remain unverified; implement overrideable structure and local-only smoke script first
 - Updated at: 2026-06-11 00:00 KST
@@ -89,6 +89,22 @@
 - Commands run: `cargo fmt --manifest-path src-tauri/Cargo.toml`, `cargo test --manifest-path src-tauri/Cargo.toml`, sensitive metadata `rg` scan
 - Result: 28 Rust tests passed; endpoint host allowlist added; PoC email/account/auth path metadata redacted; last-good stale/rate-limit preservation and memory-only refresh cache tests added
 - Next step: Commit first M1 checkpoint, then add provider HTTP runtime and safer refresh-host handling
+
+### 2026-06-11 00:00
+- Agent: main + git-specialist
+- Task: Commit first safe checkpoints
+- Files changed: git history
+- Commands run: `git commit -m "feat: add M1 usage data layer scaffold"`, `git commit -m "docs: add project spec and roadmap"`
+- Result: Created commits `c7f7ca6` and `b90a0f6`; `.codex/` remains untracked local tooling config
+- Next step: Add HTTP client abstraction and provider orchestration without real API tests
+
+### 2026-06-11 00:00
+- Agent: main
+- Task: Add provider HTTP abstraction
+- Files changed: `src-tauri/src/http.rs`, provider modules, runtime, `roadmap.md`
+- Commands run: `cargo fmt --manifest-path src-tauri/Cargo.toml`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: 32 tests passed; HTTP clients validate endpoint allowlist before attaching bearer tokens; provider status mapping tested with fixture client only
+- Next step: Commit provider HTTP checkpoint, then implement config persistence defaults/clamp/corrupt recovery tests
 
 ## Known Issues
 | Issue | Severity | Status | Next Action |

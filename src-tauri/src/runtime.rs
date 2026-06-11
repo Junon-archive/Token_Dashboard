@@ -29,7 +29,7 @@ impl ProviderRuntimeState {
 
     pub fn apply_error(&self, error: ProviderError) -> UsageSnapshot {
         match error {
-            ProviderError::SchemaMismatch | ProviderError::Network => self
+            ProviderError::SchemaMismatch | ProviderError::Network | ProviderError::Http(_) => self
                 .last_good
                 .as_ref()
                 .map(|snapshot| UsageSnapshot::stale_from_last_good(snapshot, error.to_string()))
