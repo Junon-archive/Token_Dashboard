@@ -11,7 +11,7 @@ if [[ "${CI:-}" == "true" ]]; then
   exit 2
 fi
 
-echo "Local-only smoke placeholder."
+echo "Local-only smoke runner."
 echo "This script prints only normalized snapshots and sanitized status fields."
 echo "Do not print auth files, Authorization headers, access tokens, refresh tokens, ID tokens, or API keys."
 
