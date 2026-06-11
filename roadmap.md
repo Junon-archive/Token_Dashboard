@@ -1,13 +1,13 @@
 # Token Dashboard Roadmap
 
 ## Current Status
-- Current milestone: M1 — Data Layer
-- Current task: Record Claude parser fix and verified smoke
-- Last completed task: Fixed Claude `expiresAt` numeric parsing and verified successful smoke
+- Current milestone: M2 — Single Widget UI
+- Current task: Prepare M2 implementation start
+- Last completed task: Closed out M1 after verifying Claude/Codex smoke and parsing fix
 - Last command run: `TOKEN_DASHBOARD_ALLOW_REAL_API=1 /home/junon/Token_Dashboard/scripts/local-smoke.sh --provider claude`
 - Last test result: Passed — 49 tests; Claude smoke returned NORMAL, Codex remained verified
-- Next recommended command: `TOKEN_DASHBOARD_ALLOW_REAL_API=1 ./scripts/local-smoke.sh --provider codex --polls 20 --interval-sec 180`
-- Blocking issue: macOS Keychain Security framework first path is not implemented on Ubuntu
+- Next recommended command: `git status`
+- Blocking issue: macOS Keychain Security framework first path is not implemented on Ubuntu, but M1 is complete
 - Updated at: 2026-06-11 05:47 UTC
 
 ## Source Documents Read
@@ -44,7 +44,7 @@
 - [x] Add fixture tests
 - [x] Add local-only smoke script
 - [x] Run tests
-- [ ] Commit M1
+- [x] Commit M1
 
 ### M2 — Single Widget UI
 - [ ] Implement transparent Tauri window
