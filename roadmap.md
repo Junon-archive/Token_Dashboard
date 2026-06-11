@@ -2,11 +2,11 @@
 
 ## Current Status
 - Current milestone: M1 — Data Layer
-- Current task: Commit config guardrails checkpoint
-- Last completed task: Added AppConfig defaults, polling clamp, corrupt config recovery, unknown-key preservation, and token-material detection
+- Current task: Push current safe M1 checkpoints
+- Last completed task: Committed config guardrails checkpoint
 - Last command run: `cargo test --manifest-path src-tauri/Cargo.toml`
 - Last test result: Passed — 41 tests
-- Next recommended command: `cargo test --manifest-path src-tauri/Cargo.toml`
+- Next recommended command: `git push -u origin main`
 - Blocking issue: Codex direct usage endpoint/path and refresh host remain unverified; implement overrideable structure and local-only smoke script first
 - Updated at: 2026-06-11 00:00 KST
 
@@ -129,6 +129,14 @@
 - Commands run: `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`
 - Result: 41 tests passed; config clamps polling minimum to 120s, preserves unknown top-level keys, backs up corrupted config, and detects token-like config material
 - Next step: Commit config guardrails checkpoint, then run final M1 status scan and decide whether to push current safe commits
+
+### 2026-06-11 00:00
+- Agent: main
+- Task: Final checkpoint before push
+- Files changed: `roadmap.md`
+- Commands run: `cargo test --manifest-path src-tauri/Cargo.toml`, `git status --short`, `git log --oneline --decorate -10`
+- Result: 41 tests passed; six commits exist on `main`; only `.codex/` remains untracked as local tooling config
+- Next step: Commit roadmap status and push `main` to `origin`
 
 ## Known Issues
 | Issue | Severity | Status | Next Action |
