@@ -35,20 +35,40 @@ impl CodexProvider {
         &self,
         endpoints: &EndpointConfig,
         access_token: &str,
+        account_id: Option<&str>,
         http: &dyn UsageHttpClient,
     ) -> Result<UsageSnapshot, ProviderError> {
         let Some(url) = join_codex_usage_url(endpoints)? else {
             return Err(ProviderError::SchemaMismatch);
         };
 
-        let response = http.get_with_bearer(&url, access_token, &[]).await?;
+        let headers = account_id
+            .map(|account_id| {
+                vec![crate::http::SafeHeader {
+                    name: "ChatGPT-Account-Id".to_string(),
+                    value: account_id.to_string(),
+                }]
+            })
+            .unwrap_or_default();
+        let response = http.get_with_bearer(&url, access_token, &headers).await?;
         match response.status {
-            200 => parse_codex_usage(&response.body),
+            200 => parse_codex_raw_usage(&response.body),
             401 | 403 => Err(ProviderError::AuthError),
             429 => Err(ProviderError::RateLimited),
             _ => Err(ProviderError::Network),
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct CodexRawUsageResponse {
+    rate_limit: Option<CodexRateLimit>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CodexRateLimit {
+    primary_window: Option<CodexRawWindow>,
+    secondary_window: Option<CodexRawWindow>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -116,6 +136,40 @@ pub fn parse_codex_usage(input: &str) -> Result<UsageSnapshot, ProviderError> {
     })
 }
 
+pub fn parse_codex_raw_usage(input: &str) -> Result<UsageSnapshot, ProviderError> {
+    let raw: CodexRawUsageResponse =
+        serde_json::from_str(input).map_err(|_| ProviderError::SchemaMismatch)?;
+    let rate_limit = raw.rate_limit.ok_or(ProviderError::SchemaMismatch)?;
+    let windows = [rate_limit.primary_window, rate_limit.secondary_window];
+    let mut primary = None;
+    let mut secondary = None;
+
+    for window in windows.into_iter().flatten() {
+        let limit = window.limit_window_seconds;
+        let parsed = parse_codex_raw_window(window)?;
+        match limit {
+            FIVE_HOURS_SECONDS => primary = Some(parsed),
+            WEEK_SECONDS => secondary = Some(parsed),
+            _ => {}
+        }
+    }
+
+    let primary = primary.ok_or(ProviderError::SchemaMismatch)?;
+    let secondary = secondary.ok_or(ProviderError::SchemaMismatch)?;
+    let max_used = primary.used_pct.max(secondary.used_pct);
+
+    Ok(UsageSnapshot {
+        provider: ProviderKind::Codex,
+        state: state_for_success(max_used),
+        primary: Some(primary),
+        secondary: Some(secondary),
+        extra: None,
+        fetched_at: Utc::now(),
+        is_stale: false,
+        error: None,
+    })
+}
+
 fn parse_codex_window(window: CodexWindow) -> Result<UsageWindow, ProviderError> {
     let raw = window.raw.ok_or(ProviderError::SchemaMismatch)?;
     let used_pct = window
@@ -137,6 +191,15 @@ fn parse_codex_window(window: CodexWindow) -> Result<UsageWindow, ProviderError>
     })
 }
 
+fn parse_codex_raw_window(window: CodexRawWindow) -> Result<UsageWindow, ProviderError> {
+    let used_pct = window.used_percent.ok_or(ProviderError::SchemaMismatch)?;
+    let reset_at = window.reset_at.ok_or(ProviderError::SchemaMismatch)?;
+    Ok(UsageWindow {
+        used_pct,
+        resets_at: epoch_seconds_to_utc(reset_at).map_err(|_| ProviderError::SchemaMismatch)?,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -149,6 +212,17 @@ mod tests {
 
         assert_eq!(snapshot.provider, ProviderKind::Codex);
         assert_eq!(snapshot.state, UsageState::Normal);
+        assert_eq!(snapshot.primary.unwrap().used_pct, 45.0);
+        assert_eq!(snapshot.secondary.unwrap().used_pct, 23.0);
+    }
+
+    #[test]
+    fn converts_codex_raw_usage_fixture_to_usage_snapshot() {
+        let snapshot =
+            parse_codex_raw_usage(include_str!("../../tests/fixtures/codex_raw_usage.json"))
+                .unwrap();
+
+        assert_eq!(snapshot.provider, ProviderKind::Codex);
         assert_eq!(snapshot.primary.unwrap().used_pct, 45.0);
         assert_eq!(snapshot.secondary.unwrap().used_pct, 23.0);
     }
@@ -184,11 +258,18 @@ mod tests {
             codex_usage_path: Some("/backend-api/synthetic-usage".to_string()),
             ..EndpointConfig::default()
         };
-        let http =
-            FixtureHttpClient::new(200, include_str!("../../tests/fixtures/codex_usage.json"));
+        let http = FixtureHttpClient::new(
+            200,
+            include_str!("../../tests/fixtures/codex_raw_usage.json"),
+        );
 
         let snapshot = provider
-            .snapshot_with_http(&endpoints, "synthetic-access", &http)
+            .snapshot_with_http(
+                &endpoints,
+                "synthetic-access",
+                Some("synthetic-account"),
+                &http,
+            )
             .await
             .unwrap();
 
@@ -198,17 +279,46 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn provider_rejects_unverified_missing_usage_path() {
+    async fn provider_uses_verified_default_usage_path() {
         use crate::http::testsupport::FixtureHttpClient;
 
         let provider = CodexProvider;
         let endpoints = EndpointConfig::default();
-        let http =
-            FixtureHttpClient::new(200, include_str!("../../tests/fixtures/codex_usage.json"));
+        let http = FixtureHttpClient::new(
+            200,
+            include_str!("../../tests/fixtures/codex_raw_usage.json"),
+        );
+
+        let snapshot = provider
+            .snapshot_with_http(&endpoints, "synthetic-access", None, &http)
+            .await
+            .unwrap();
+
+        assert_eq!(snapshot.provider, ProviderKind::Codex);
+        assert_eq!(http.requests().len(), 1);
+        assert_eq!(
+            http.requests()[0].url,
+            "https://chatgpt.com/backend-api/wham/usage"
+        );
+    }
+
+    #[tokio::test]
+    async fn provider_rejects_empty_usage_path_override() {
+        use crate::http::testsupport::FixtureHttpClient;
+
+        let provider = CodexProvider;
+        let endpoints = EndpointConfig {
+            codex_usage_path: None,
+            ..EndpointConfig::default()
+        };
+        let http = FixtureHttpClient::new(
+            200,
+            include_str!("../../tests/fixtures/codex_raw_usage.json"),
+        );
 
         assert!(matches!(
             provider
-                .snapshot_with_http(&endpoints, "synthetic-access", &http)
+                .snapshot_with_http(&endpoints, "synthetic-access", None, &http)
                 .await,
             Err(ProviderError::SchemaMismatch)
         ));

@@ -53,8 +53,8 @@ impl Default for EndpointConfig {
         Self {
             claude_usage: "https://api.anthropic.com/api/oauth/usage".to_string(),
             claude_beta_header: "oauth-2025-04-20".to_string(),
-            codex_base: "https://chatgpt.com/backend-api".to_string(),
-            codex_usage_path: None,
+            codex_base: "https://chatgpt.com/backend-api/".to_string(),
+            codex_usage_path: Some("wham/usage".to_string()),
         }
     }
 }
@@ -153,6 +153,18 @@ pub fn validate_endpoint_url(url: &str) -> Result<(), EndpointError> {
     }
 }
 
+pub fn validate_refresh_endpoint_url(url: &str) -> Result<(), EndpointError> {
+    let parsed = reqwest::Url::parse(url).map_err(|_| EndpointError::InvalidUrl)?;
+    if parsed.scheme() != "https" {
+        return Err(EndpointError::InvalidScheme);
+    }
+
+    match parsed.host_str() {
+        Some("api.anthropic.com" | "auth.openai.com") => Ok(()),
+        _ => Err(EndpointError::HostNotAllowed),
+    }
+}
+
 pub fn join_codex_usage_url(config: &EndpointConfig) -> Result<Option<String>, EndpointError> {
     validate_endpoint_url(&config.codex_base)?;
     let Some(path) = &config.codex_usage_path else {
@@ -180,6 +192,18 @@ mod tests {
         assert_eq!(
             validate_endpoint_url("https://chatgpt.com/backend-api/example"),
             Ok(())
+        );
+    }
+
+    #[test]
+    fn allows_documented_refresh_hosts_separately() {
+        assert_eq!(
+            validate_refresh_endpoint_url("https://auth.openai.com/oauth/token"),
+            Ok(())
+        );
+        assert_eq!(
+            validate_refresh_endpoint_url("https://chatgpt.com/backend-api/wham/usage"),
+            Err(EndpointError::HostNotAllowed)
         );
     }
 
@@ -256,7 +280,7 @@ mod tests {
             "headers": { "Authorization": "Bearer synthetic" }
         })));
         assert!(!config_value_contains_token_material(&json!({
-            "endpoints": { "codex_base": "https://chatgpt.com/backend-api" }
+            "endpoints": { "codex_base": "https://chatgpt.com/backend-api/" }
         })));
     }
 }

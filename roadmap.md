@@ -2,12 +2,12 @@
 
 ## Current Status
 - Current milestone: M1 — Data Layer
-- Current task: Push current safe M1 checkpoints
-- Last completed task: Committed config guardrails checkpoint
+- Current task: Commit Codex direct endpoint research update
+- Last completed task: Confirmed Codex direct usage path and refresh host from `codex-check@1.3.13`
 - Last command run: `cargo test --manifest-path src-tauri/Cargo.toml`
-- Last test result: Passed — 41 tests
-- Next recommended command: `git push -u origin main`
-- Blocking issue: Codex direct usage endpoint/path and refresh host remain unverified; implement overrideable structure and local-only smoke script first
+- Last test result: Passed — 44 tests
+- Next recommended command: `git push`
+- Blocking issue: Real Codex direct API smoke and 20-poll no-429 run are still local-only/manual; no real API calls were run in automated tests
 - Updated at: 2026-06-11 00:00 KST
 
 ## Source Documents Read
@@ -19,7 +19,8 @@
 | Date | Decision | Reason | Files/Sections |
 |---|---|---|---|
 | 2026-06-11 | Start with a GUI-free Rust data-layer crate under `src-tauri` | M1 requires provider parsing/state logic before UI; Tauri can attach to the same crate in M2 | SPEC.md §§3-5, §11 |
-| 2026-06-11 | Keep Codex usage endpoint path configurable and do not hardcode unverified refresh behavior | PoC used `codex-check`; direct path/refresh host are not confirmed | SPEC.md §§2.4, 4.3, R-3 |
+| 2026-06-11 | Keep Codex usage endpoint path configurable until source-backed | PoC used `codex-check`; direct path/refresh host were initially not confirmed | SPEC.md §§2.4, 4.3, R-3 |
+| 2026-06-11 | Set Codex usage default to `chatgpt.com/backend-api/wham/usage` and document refresh host `auth.openai.com/oauth/token` | Confirmed by static analysis of public `codex-check@1.3.13`; app keeps refresh memory-only and allowlisted | `src-tauri/src/config.rs`, `src-tauri/src/providers/codex.rs`, `src-tauri/src/refresh.rs` |
 | 2026-06-11 | Automatic tests use fixtures only; real API checks are local-only scripts | CI must not call real APIs or print auth material | SPEC.md §§2, 10 |
 
 ## Milestone Checklist
@@ -138,11 +139,19 @@
 - Result: 41 tests passed; six commits exist on `main`; only `.codex/` remains untracked as local tooling config
 - Next step: Commit roadmap status and push `main` to `origin`
 
+### 2026-06-11 00:00
+- Agent: main
+- Task: Confirm Codex direct endpoint from public package source
+- Files changed: `src-tauri/src/config.rs`, `src-tauri/src/providers/codex.rs`, `src-tauri/src/refresh.rs`, `src-tauri/tests/fixtures/codex_raw_usage.json`, `src-tauri/tests/m1_contract.rs`, `roadmap.md`
+- Commands run: `npm view codex-check repository version dist.tarball`, `npm pack codex-check --pack-destination /tmp`, `rg`/`sed` over `/tmp/codex-check-1.3.13/package/index.mjs`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: 44 tests passed; confirmed usage path `/backend-api/wham/usage`, `ChatGPT-Account-Id` header, and refresh host `auth.openai.com/oauth/token`; no auth files read and no real API calls made
+- Next step: Commit and push this endpoint research update
+
 ## Known Issues
 | Issue | Severity | Status | Next Action |
 |---|---|---|---|
-| Codex direct usage endpoint path is not confirmed from PoC | High | Open | Keep endpoint override, parser fixtures, and local-only smoke script; investigate source references if added |
-| Codex/Claude refresh host allowlist is not confirmed | High | Open | Do not persist refreshed tokens; defer real refresh calls until host is documented |
+| Codex direct usage endpoint path is not confirmed from PoC | High | Resolved by source analysis | Default to `/backend-api/wham/usage`; still requires local-only real API smoke |
+| Codex refresh host allowlist is not confirmed | High | Resolved by source analysis | `auth.openai.com/oauth/token` documented; refresh remains memory-only and not yet wired to real HTTP |
 | macOS Keychain cannot be verified on current Ubuntu environment | Medium | Open | Implement macOS-gated source with `security` fallback and document manual verification |
 | 20-poll no-429 run is not completed | Medium | Open | Add local-only script/checklist; do not run in CI |
 

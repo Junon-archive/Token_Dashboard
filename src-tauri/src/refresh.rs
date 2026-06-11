@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use thiserror::Error;
 
 use crate::{
-    config::{validate_endpoint_url, EndpointError},
+    config::{validate_refresh_endpoint_url, EndpointError},
     providers::ProviderError,
     refresh_cache::TokenRefreshCache,
     snapshot::{ProviderKind, UsageState},
@@ -25,7 +25,7 @@ pub struct RefreshSuccess {
 
 pub fn validate_refresh_endpoint(endpoint: Option<&str>) -> Result<(), RefreshPolicyError> {
     let endpoint = endpoint.ok_or(RefreshPolicyError::MissingEndpoint)?;
-    validate_endpoint_url(endpoint)?;
+    validate_refresh_endpoint_url(endpoint)?;
     Ok(())
 }
 

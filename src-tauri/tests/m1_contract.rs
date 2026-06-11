@@ -31,9 +31,14 @@ fn auth_and_rate_errors_map_to_logical_states() {
 }
 
 #[test]
-fn codex_usage_path_is_optional_until_verified() {
+fn codex_usage_path_defaults_to_verified_wham_usage_path() {
     let config = EndpointConfig::default();
-    assert_eq!(join_codex_usage_url(&config), Ok(None));
+    assert_eq!(
+        join_codex_usage_url(&config),
+        Ok(Some(
+            "https://chatgpt.com/backend-api/wham/usage".to_string()
+        ))
+    );
 }
 
 #[test]
