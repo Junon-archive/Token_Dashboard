@@ -2,10 +2,10 @@
 
 ## Current Status
 - Current milestone: M1 — Data Layer
-- Current task: Commit token source reader checkpoint
-- Last completed task: Added read-only token source readers for Codex file, Linux Claude file, and macOS Claude security CLI path
+- Current task: Commit refresh policy checkpoint
+- Last completed task: Added refresh policy guardrails and memory-only refresh success handling
 - Last command run: `cargo test --manifest-path src-tauri/Cargo.toml`
-- Last test result: Passed — 34 tests
+- Last test result: Passed — 37 tests
 - Next recommended command: `cargo test --manifest-path src-tauri/Cargo.toml`
 - Blocking issue: Codex direct usage endpoint/path and refresh host remain unverified; implement overrideable structure and local-only smoke script first
 - Updated at: 2026-06-11 00:00 KST
@@ -113,6 +113,14 @@
 - Commands run: `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`
 - Result: 34 tests passed; synthetic temp-file tests cover Codex and Linux Claude readers without reading real auth files; macOS Claude uses `security` CLI path with no file fallback
 - Next step: Commit token source checkpoint, then add config persistence defaults/clamp/corrupt recovery tests
+
+### 2026-06-11 00:00
+- Agent: main
+- Task: Add refresh policy guardrails
+- Files changed: `src-tauri/src/refresh.rs`, `src-tauri/src/lib.rs`, `roadmap.md`
+- Commands run: `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: 37 tests passed; undocumented refresh endpoints are blocked before network; refresh success writes only memory cache and returns non-warning state
+- Next step: Commit refresh policy checkpoint, then add config persistence defaults/clamp/corrupt recovery tests
 
 ## Known Issues
 | Issue | Severity | Status | Next Action |

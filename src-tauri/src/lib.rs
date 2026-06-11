@@ -3,6 +3,7 @@ pub mod config;
 pub mod http;
 pub mod masking;
 pub mod providers;
+pub mod refresh;
 pub mod refresh_cache;
 pub mod runtime;
 pub mod snapshot;
