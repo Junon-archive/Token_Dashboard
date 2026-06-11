@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use std::{
-    fs,
+    fmt, fs,
     path::{Path, PathBuf},
 };
 use thiserror::Error;
@@ -17,18 +17,48 @@ pub enum TokenSourceError {
     ReadFailed,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct ClaudeCredentials {
     pub access_token: String,
+    pub refresh_token: Option<String>,
     pub expires_at: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl fmt::Debug for ClaudeCredentials {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ClaudeCredentials")
+            .field("access_token", &"[REDACTED]")
+            .field(
+                "refresh_token",
+                &self.refresh_token.as_ref().map(|_| "[REDACTED]"),
+            )
+            .field("expires_at", &self.expires_at)
+            .finish()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
 pub struct CodexCredentials {
     pub access_token: String,
     pub refresh_token: Option<String>,
     pub account_id: Option<String>,
     pub last_refresh: Option<String>,
+}
+
+impl fmt::Debug for CodexCredentials {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CodexCredentials")
+            .field("access_token", &"[REDACTED]")
+            .field(
+                "refresh_token",
+                &self.refresh_token.as_ref().map(|_| "[REDACTED]"),
+            )
+            .field("account_id", &self.account_id)
+            .field("last_refresh", &self.last_refresh)
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -47,6 +77,8 @@ struct ClaudeAuthJson {
 struct ClaudeOauthJson {
     #[serde(rename = "accessToken")]
     access_token: Option<String>,
+    #[serde(rename = "refreshToken")]
+    refresh_token: Option<String>,
     #[serde(rename = "expiresAt")]
     expires_at: Option<String>,
 }
@@ -76,6 +108,7 @@ pub fn parse_claude_credentials(input: &str) -> Result<ClaudeCredentials, TokenS
 
     Ok(ClaudeCredentials {
         access_token,
+        refresh_token: oauth.refresh_token,
         expires_at: oauth.expires_at,
     })
 }
@@ -207,6 +240,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(parsed.access_token, "synthetic-access");
+        assert_eq!(parsed.refresh_token.as_deref(), Some("synthetic-refresh"));
         assert_eq!(parsed.expires_at.as_deref(), Some("2026-06-10T13:40:00Z"));
     }
 
@@ -220,6 +254,23 @@ mod tests {
         assert_eq!(parsed.access_token, "synthetic-access");
         assert_eq!(parsed.refresh_token.as_deref(), Some("synthetic-refresh"));
         assert_eq!(parsed.account_id.as_deref(), Some("synthetic-account"));
+    }
+
+    #[test]
+    fn credential_debug_output_is_redacted() {
+        let claude = parse_claude_credentials(
+            r#"{"claudeAiOauth":{"accessToken":"synthetic-access","refreshToken":"synthetic-refresh"}}"#,
+        )
+        .unwrap();
+        let codex = parse_codex_credentials(
+            r#"{"auth_mode":"chatgpt","tokens":{"access_token":"synthetic-access","refresh_token":"synthetic-refresh","account_id":"synthetic-account"}}"#,
+        )
+        .unwrap();
+
+        let debug = format!("{claude:?} {codex:?}");
+        assert!(!debug.contains("synthetic-access"));
+        assert!(!debug.contains("synthetic-refresh"));
+        assert!(debug.contains("[REDACTED]"));
     }
 
     #[test]

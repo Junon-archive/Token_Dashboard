@@ -6,9 +6,11 @@ use thiserror::Error;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EndpointConfig {
     pub claude_usage: String,
+    pub claude_refresh: String,
     pub claude_beta_header: String,
     pub codex_base: String,
     pub codex_usage_path: Option<String>,
+    pub codex_refresh: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -52,9 +54,11 @@ impl Default for EndpointConfig {
     fn default() -> Self {
         Self {
             claude_usage: "https://api.anthropic.com/api/oauth/usage".to_string(),
+            claude_refresh: "https://platform.claude.com/v1/oauth/token".to_string(),
             claude_beta_header: "oauth-2025-04-20".to_string(),
             codex_base: "https://chatgpt.com/backend-api/".to_string(),
             codex_usage_path: Some("wham/usage".to_string()),
+            codex_refresh: "https://auth.openai.com/oauth/token".to_string(),
         }
     }
 }
@@ -75,6 +79,8 @@ pub enum ConfigError {
     Io(#[from] std::io::Error),
     #[error("config JSON failed")]
     Json(#[from] serde_json::Error),
+    #[error("config contains token-like material")]
+    TokenMaterial,
 }
 
 impl AppConfig {
@@ -92,7 +98,13 @@ impl AppConfig {
 pub fn load_or_create_config(path: &Path) -> Result<AppConfig, ConfigError> {
     match fs::read_to_string(path) {
         Ok(raw) => match serde_json::from_str::<AppConfig>(&raw) {
-            Ok(config) => Ok(config.normalized()),
+            Ok(config) => {
+                let value: Value = serde_json::from_str(&raw)?;
+                if config_value_contains_token_material(&value) {
+                    return Err(ConfigError::TokenMaterial);
+                }
+                Ok(config.normalized())
+            }
             Err(_) => {
                 let backup = path.with_extension("json.bak");
                 fs::rename(path, backup)?;
@@ -114,7 +126,12 @@ pub fn write_config(path: &Path, config: &AppConfig) -> Result<(), ConfigError> 
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    let raw = serde_json::to_string_pretty(&config.clone().normalized())?;
+    let normalized = config.clone().normalized();
+    let value = serde_json::to_value(&normalized)?;
+    if config_value_contains_token_material(&value) {
+        return Err(ConfigError::TokenMaterial);
+    }
+    let raw = serde_json::to_string_pretty(&normalized)?;
     fs::write(path, raw)?;
     Ok(())
 }
@@ -148,7 +165,9 @@ pub fn validate_endpoint_url(url: &str) -> Result<(), EndpointError> {
     }
 
     match parsed.host_str() {
-        Some("api.anthropic.com" | "chatgpt.com") => Ok(()),
+        Some("api.anthropic.com") if parsed.path() == "/api/oauth/usage" => Ok(()),
+        Some("chatgpt.com") if parsed.path().starts_with("/backend-api/") => Ok(()),
+        Some("api.anthropic.com" | "chatgpt.com") => Err(EndpointError::HostNotAllowed),
         _ => Err(EndpointError::HostNotAllowed),
     }
 }
@@ -160,7 +179,9 @@ pub fn validate_refresh_endpoint_url(url: &str) -> Result<(), EndpointError> {
     }
 
     match parsed.host_str() {
-        Some("api.anthropic.com" | "auth.openai.com") => Ok(()),
+        Some("platform.claude.com") if parsed.path() == "/v1/oauth/token" => Ok(()),
+        Some("auth.openai.com") if parsed.path() == "/oauth/token" => Ok(()),
+        Some("platform.claude.com" | "auth.openai.com") => Err(EndpointError::HostNotAllowed),
         _ => Err(EndpointError::HostNotAllowed),
     }
 }
@@ -193,6 +214,10 @@ mod tests {
             validate_endpoint_url("https://chatgpt.com/backend-api/example"),
             Ok(())
         );
+        assert_eq!(
+            validate_endpoint_url("https://api.anthropic.com/api/oauth/profile"),
+            Err(EndpointError::HostNotAllowed)
+        );
     }
 
     #[test]
@@ -200,6 +225,14 @@ mod tests {
         assert_eq!(
             validate_refresh_endpoint_url("https://auth.openai.com/oauth/token"),
             Ok(())
+        );
+        assert_eq!(
+            validate_refresh_endpoint_url("https://platform.claude.com/v1/oauth/token"),
+            Ok(())
+        );
+        assert_eq!(
+            validate_refresh_endpoint_url("https://platform.claude.com/v1/oauth/other"),
+            Err(EndpointError::HostNotAllowed)
         );
         assert_eq!(
             validate_refresh_endpoint_url("https://chatgpt.com/backend-api/wham/usage"),
@@ -282,5 +315,38 @@ mod tests {
         assert!(!config_value_contains_token_material(&json!({
             "endpoints": { "codex_base": "https://chatgpt.com/backend-api/" }
         })));
+    }
+
+    #[test]
+    fn rejects_token_material_on_load_and_write() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("config.json");
+        fs::write(
+            &path,
+            serde_json::to_string_pretty(&json!({
+                "version": 1,
+                "widget_scale": 1.0,
+                "polling": { "interval_sec": 180, "min_interval_sec": 120 },
+                "endpoints": EndpointConfig::default(),
+                "advanced": { "refresh_token": "synthetic" }
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert!(matches!(
+            load_or_create_config(&path),
+            Err(ConfigError::TokenMaterial)
+        ));
+
+        let mut config = AppConfig::default();
+        config.unknown.insert(
+            "advanced".to_string(),
+            json!({ "Authorization": "Bearer synthetic" }),
+        );
+        assert!(matches!(
+            write_config(&temp.path().join("out.json"), &config),
+            Err(ConfigError::TokenMaterial)
+        ));
     }
 }

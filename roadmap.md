@@ -2,13 +2,13 @@
 
 ## Current Status
 - Current milestone: M1 — Data Layer
-- Current task: Commit local-only smoke runner
-- Last completed task: Added guarded local-only smoke binary and script wiring
-- Last command run: `cargo test --manifest-path src-tauri/Cargo.toml`
-- Last test result: Passed — 47 tests
+- Current task: Commit refresh orchestration and M1 security hardening
+- Last completed task: Added memory-only Claude/Codex refresh retry path with fixture tests
+- Last command run: `rg --pcre2 ... --glob '!src-tauri/target/**' --glob '!Cargo.lock'`
+- Last test result: Passed — 57 tests (`cargo test --manifest-path src-tauri/Cargo.toml`)
 - Next recommended command: `TOKEN_DASHBOARD_ALLOW_REAL_API=1 ./scripts/local-smoke.sh --provider all`
-- Blocking issue: Real Codex direct API smoke and 20-poll no-429 run are still local-only/manual; no real API calls were run in automated tests
-- Updated at: 2026-06-11 00:00 KST
+- Blocking issue: 20-poll no-429 run is still local-only/manual; macOS Keychain Security framework first path is not implemented on Ubuntu
+- Updated at: 2026-06-11 09:38 KST
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -22,6 +22,8 @@
 | 2026-06-11 | Keep Codex usage endpoint path configurable until source-backed | PoC used `codex-check`; direct path/refresh host were initially not confirmed | SPEC.md §§2.4, 4.3, R-3 |
 | 2026-06-11 | Set Codex usage default to `chatgpt.com/backend-api/wham/usage` and document refresh host `auth.openai.com/oauth/token` | Confirmed by static analysis of public `codex-check@1.3.13`; app keeps refresh memory-only and allowlisted | `src-tauri/src/config.rs`, `src-tauri/src/providers/codex.rs`, `src-tauri/src/refresh.rs` |
 | 2026-06-11 | Automatic tests use fixtures only; real API checks are local-only scripts | CI must not call real APIs or print auth material | SPEC.md §§2, 10 |
+| 2026-06-11 | Add source-backed refresh retry for Claude and Codex, but keep refreshed tokens memory-only | Claude CLI 2.1.170 and codex-check 1.3.13 expose refresh endpoint/client metadata; SPEC forbids writing CLI-owned auth files | `src-tauri/src/refresh.rs`, `src-tauri/src/providers/claude.rs`, `src-tauri/src/providers/codex.rs` |
+| 2026-06-11 | Reject token-like material in app config on load/write | Unknown config keys are preserved only when they do not contain token-like keys or Bearer strings | `src-tauri/src/config.rs` |
 
 ## Milestone Checklist
 
@@ -35,7 +37,7 @@
 - [x] Implement Codex token source
 - [x] Investigate Codex direct usage endpoint
 - [x] Implement Codex usage parser
-- [ ] Implement refresh/cache policy where safe
+- [x] Implement refresh/cache policy where safe
 - [x] Implement state machine
 - [x] Implement backoff
 - [x] Implement token masking
@@ -155,11 +157,20 @@
 - Result: 47 tests passed; smoke script refuses to run without `TOKEN_DASHBOARD_ALLOW_REAL_API=1`; no real auth files or APIs were touched
 - Next step: Commit smoke runner, then request permission to run one-shot real local smoke
 
+### 2026-06-11 09:38
+- Agent: main + api-researcher + security-privacy-specialist
+- Task: Add source-backed refresh orchestration and M1 security hardening
+- Files changed: `src-tauri/src/config.rs`, `src-tauri/src/token_source.rs`, `src-tauri/src/refresh.rs`, `src-tauri/src/refresh_cache.rs`, `src-tauri/src/providers/claude.rs`, `src-tauri/src/providers/codex.rs`, `src-tauri/src/bin/local_smoke.rs`, `roadmap.md`
+- Commands run: `strings` static inspection of installed Claude CLI binary, `rg` over public codex-check source, `cargo fmt --manifest-path src-tauri/Cargo.toml`, `cargo test --manifest-path src-tauri/Cargo.toml`, sensitive-pattern `rg --pcre2` scan
+- Result: 57 tests passed; Claude/Codex 401 refresh retry path is fixture-tested; refreshed tokens stay memory-only; config rejects token-like material; secret-bearing Debug output is redacted
+- Next step: Commit refresh/security hardening, then run guarded one-shot local smoke only with explicit local permission
+
 ## Known Issues
 | Issue | Severity | Status | Next Action |
 |---|---|---|---|
 | Codex direct usage endpoint path is not confirmed from PoC | High | Resolved by source analysis | Default to `/backend-api/wham/usage`; still requires local-only real API smoke |
-| Codex refresh host allowlist is not confirmed | High | Resolved by source analysis | `auth.openai.com/oauth/token` documented; refresh remains memory-only and not yet wired to real HTTP |
+| Codex refresh host/client metadata is not confirmed | High | Resolved by source analysis | `auth.openai.com/oauth/token` and client metadata from codex-check 1.3.13; refresh is memory-only and fixture-tested |
+| Claude refresh host/client metadata is undocumented | High | Resolved by local CLI static analysis | `platform.claude.com/v1/oauth/token` and client metadata from installed Claude CLI 2.1.170; refresh is memory-only and fixture-tested |
 | macOS Keychain cannot be verified on current Ubuntu environment | Medium | Open | Implement macOS-gated source with `security` fallback and document manual verification |
 | 20-poll no-429 run is not completed | Medium | Open | Add local-only script/checklist; do not run in CI |
 

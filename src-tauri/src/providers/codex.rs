@@ -6,9 +6,15 @@ use crate::{
     config::{join_codex_usage_url, EndpointConfig},
     http::UsageHttpClient,
     providers::{ProviderError, UsageProvider},
+    refresh::{
+        apply_memory_only_refresh_success, codex_refresh_request, refresh_access_token,
+        RefreshHttpClient, RefreshSuccess,
+    },
+    refresh_cache::TokenRefreshCache,
     snapshot::{ProviderKind, UsageSnapshot, UsageWindow},
     state::state_for_success,
     time::{epoch_seconds_to_utc, parse_rfc3339_utc},
+    token_source::CodexCredentials,
 };
 
 const FIVE_HOURS_SECONDS: u64 = 18_000;
@@ -56,6 +62,59 @@ impl CodexProvider {
             401 | 403 => Err(ProviderError::AuthError),
             429 => Err(ProviderError::RateLimited),
             _ => Err(ProviderError::Network),
+        }
+    }
+
+    pub async fn snapshot_with_refresh_http(
+        &self,
+        endpoints: &EndpointConfig,
+        credentials: &CodexCredentials,
+        usage_http: &dyn UsageHttpClient,
+        refresh_http: &dyn RefreshHttpClient,
+        cache: &mut TokenRefreshCache,
+    ) -> Result<UsageSnapshot, ProviderError> {
+        let cached_token = cache
+            .get_if_newer_than(ProviderKind::Codex, None)
+            .map(|cached| cached.access_token.clone())
+            .unwrap_or_else(|| credentials.access_token.clone());
+
+        match self
+            .snapshot_with_http(
+                endpoints,
+                &cached_token,
+                credentials.account_id.as_deref(),
+                usage_http,
+            )
+            .await
+        {
+            Err(ProviderError::AuthError) => {
+                let refresh_token = credentials
+                    .refresh_token
+                    .as_ref()
+                    .ok_or(ProviderError::AuthError)?;
+                let token = refresh_access_token(
+                    &endpoints.codex_refresh,
+                    &codex_refresh_request(refresh_token.clone()),
+                    refresh_http,
+                )
+                .await?;
+                apply_memory_only_refresh_success(
+                    cache,
+                    RefreshSuccess {
+                        provider: ProviderKind::Codex,
+                        access_token: token.access_token.clone(),
+                        refreshed_at: Utc::now(),
+                    },
+                );
+                self.snapshot_with_http(
+                    endpoints,
+                    &token.access_token,
+                    credentials.account_id.as_deref(),
+                    usage_http,
+                )
+                .await
+            }
+            result => result,
         }
     }
 }
@@ -204,6 +263,7 @@ fn parse_codex_raw_window(window: CodexRawWindow) -> Result<UsageWindow, Provide
 mod tests {
     use super::*;
     use crate::snapshot::{ProviderKind, UsageState};
+    use std::sync::{Arc, Mutex};
 
     #[test]
     fn converts_codex_fixture_to_usage_snapshot() {
@@ -323,5 +383,87 @@ mod tests {
             Err(ProviderError::SchemaMismatch)
         ));
         assert!(http.requests().is_empty());
+    }
+
+    #[derive(Clone)]
+    struct SequenceUsageClient {
+        responses: Arc<Mutex<Vec<crate::http::UsageResponse>>>,
+    }
+
+    #[async_trait::async_trait]
+    impl UsageHttpClient for SequenceUsageClient {
+        async fn get_with_bearer(
+            &self,
+            url: &str,
+            bearer_token: &str,
+            _headers: &[crate::http::SafeHeader],
+        ) -> Result<crate::http::UsageResponse, crate::http::UsageHttpError> {
+            crate::config::validate_endpoint_url(url)?;
+            assert!(!bearer_token.is_empty());
+            Ok(self.responses.lock().unwrap().remove(0))
+        }
+    }
+
+    #[derive(Clone)]
+    struct FixtureRefreshClient {
+        status: u16,
+        body: &'static str,
+    }
+
+    #[async_trait::async_trait]
+    impl RefreshHttpClient for FixtureRefreshClient {
+        async fn post_json(
+            &self,
+            url: &str,
+            body: &crate::refresh::OAuthRefreshRequest,
+        ) -> Result<crate::refresh::RefreshResponse, crate::refresh::RefreshHttpError> {
+            crate::config::validate_refresh_endpoint_url(url)?;
+            assert_eq!(body.client_id, "app_EMoamEEZ73f0CkXaXp7hrann");
+            Ok(crate::refresh::RefreshResponse {
+                status: self.status,
+                body: self.body.to_string(),
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn auth_error_refreshes_memory_only_and_retries_usage() {
+        let usage = SequenceUsageClient {
+            responses: Arc::new(Mutex::new(vec![
+                crate::http::UsageResponse {
+                    status: 401,
+                    body: "{}".to_string(),
+                },
+                crate::http::UsageResponse {
+                    status: 200,
+                    body: include_str!("../../tests/fixtures/codex_raw_usage.json").to_string(),
+                },
+            ])),
+        };
+        let refresh = FixtureRefreshClient {
+            status: 200,
+            body: r#"{"access_token":"synthetic-refreshed"}"#,
+        };
+        let credentials = CodexCredentials {
+            access_token: "synthetic-expired".to_string(),
+            refresh_token: Some("synthetic-refresh".to_string()),
+            account_id: Some("synthetic-account".to_string()),
+            last_refresh: None,
+        };
+        let mut cache = TokenRefreshCache::default();
+
+        let snapshot = CodexProvider
+            .snapshot_with_refresh_http(
+                &EndpointConfig::default(),
+                &credentials,
+                &usage,
+                &refresh,
+                &mut cache,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(snapshot.provider, ProviderKind::Codex);
+        assert!(cache.get_if_newer_than(ProviderKind::Codex, None).is_some());
     }
 }

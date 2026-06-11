@@ -5,6 +5,8 @@ use token_dashboard::{
     config::EndpointConfig,
     http::ReqwestUsageHttpClient,
     providers::{degraded, ClaudeProvider, CodexProvider, ProviderError},
+    refresh::ReqwestRefreshHttpClient,
+    refresh_cache::TokenRefreshCache,
     snapshot::{ProviderKind, UsageSnapshot},
     token_source::{
         default_codex_auth_path, read_claude_credentials_default, read_codex_credentials_from_path,
@@ -54,10 +56,19 @@ async fn run() -> Result<(), String> {
     guard_local_only()?;
     let args = parse_args(env::args().skip(1))?;
     let endpoints = EndpointConfig::default();
-    let http = ReqwestUsageHttpClient::default();
+    let usage_http = ReqwestUsageHttpClient::default();
+    let refresh_http = ReqwestRefreshHttpClient::default();
+    let mut cache = TokenRefreshCache::default();
 
     for poll_index in 0..args.polls {
-        let outputs = collect_once(args.provider, &endpoints, &http).await;
+        let outputs = collect_once(
+            args.provider,
+            &endpoints,
+            &usage_http,
+            &refresh_http,
+            &mut cache,
+        )
+        .await;
         println!(
             "{}",
             serde_json::to_string_pretty(&outputs).map_err(|_| "failed to serialize output")?
@@ -145,23 +156,36 @@ fn parse_provider(value: &str) -> Result<SmokeProvider, String> {
 async fn collect_once(
     provider: SmokeProvider,
     endpoints: &EndpointConfig,
-    http: &ReqwestUsageHttpClient,
+    usage_http: &ReqwestUsageHttpClient,
+    refresh_http: &ReqwestRefreshHttpClient,
+    cache: &mut TokenRefreshCache,
 ) -> Vec<SmokeOutput> {
     let mut outputs = Vec::new();
     if matches!(provider, SmokeProvider::Claude | SmokeProvider::All) {
-        outputs.push(collect_claude(endpoints, http).await);
+        outputs.push(collect_claude(endpoints, usage_http, refresh_http, cache).await);
     }
     if matches!(provider, SmokeProvider::Codex | SmokeProvider::All) {
-        outputs.push(collect_codex(endpoints, http).await);
+        outputs.push(collect_codex(endpoints, usage_http, refresh_http, cache).await);
     }
     outputs
 }
 
-async fn collect_claude(endpoints: &EndpointConfig, http: &ReqwestUsageHttpClient) -> SmokeOutput {
+async fn collect_claude(
+    endpoints: &EndpointConfig,
+    usage_http: &ReqwestUsageHttpClient,
+    refresh_http: &ReqwestRefreshHttpClient,
+    cache: &mut TokenRefreshCache,
+) -> SmokeOutput {
     match read_claude_credentials_default() {
         Ok((credentials, warning)) => {
             let snapshot = ClaudeProvider
-                .snapshot_with_http(endpoints, &credentials.access_token, http)
+                .snapshot_with_refresh_http(
+                    endpoints,
+                    &credentials,
+                    usage_http,
+                    refresh_http,
+                    cache,
+                )
                 .await
                 .unwrap_or_else(|error| degraded(ProviderKind::Claude, error));
             SmokeOutput {
@@ -178,15 +202,21 @@ async fn collect_claude(endpoints: &EndpointConfig, http: &ReqwestUsageHttpClien
     }
 }
 
-async fn collect_codex(endpoints: &EndpointConfig, http: &ReqwestUsageHttpClient) -> SmokeOutput {
+async fn collect_codex(
+    endpoints: &EndpointConfig,
+    usage_http: &ReqwestUsageHttpClient,
+    refresh_http: &ReqwestRefreshHttpClient,
+    cache: &mut TokenRefreshCache,
+) -> SmokeOutput {
     match read_codex_credentials_from_path(&default_codex_auth_path()) {
         Ok((credentials, warning)) => {
             let snapshot = CodexProvider
-                .snapshot_with_http(
+                .snapshot_with_refresh_http(
                     endpoints,
-                    &credentials.access_token,
-                    credentials.account_id.as_deref(),
-                    http,
+                    &credentials,
+                    usage_http,
+                    refresh_http,
+                    cache,
                 )
                 .await
                 .unwrap_or_else(|error| degraded(ProviderKind::Codex, error));
@@ -251,5 +281,23 @@ mod tests {
     #[test]
     fn rejects_zero_polls() {
         assert!(parse_args(["--polls".to_string(), "0".to_string()]).is_err());
+    }
+
+    #[test]
+    fn smoke_output_serialization_does_not_contain_token_material() {
+        let output = SmokeOutput {
+            provider: ProviderKind::Codex,
+            snapshot: degraded(ProviderKind::Codex, ProviderError::NotLoggedIn),
+            permission_warning: Some(PermissionWarningOutput {
+                present: true,
+                mode_octal: "644".to_string(),
+            }),
+        };
+
+        let serialized = serde_json::to_string(&output).unwrap();
+        assert!(!serialized.contains("synthetic-access"));
+        assert!(!serialized.contains("synthetic-refresh"));
+        assert!(!serialized.contains("Authorization"));
+        assert!(!serialized.contains("OPENAI_API_KEY"));
     }
 }

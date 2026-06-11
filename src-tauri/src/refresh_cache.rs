@@ -1,12 +1,22 @@
 use chrono::{DateTime, Utc};
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use crate::snapshot::ProviderKind;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct CachedToken {
     pub access_token: String,
     pub refreshed_at: DateTime<Utc>,
+}
+
+impl fmt::Debug for CachedToken {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CachedToken")
+            .field("access_token", &"[REDACTED]")
+            .field("refreshed_at", &self.refreshed_at)
+            .finish()
+    }
 }
 
 #[derive(Debug, Default)]
