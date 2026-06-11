@@ -2,14 +2,14 @@
 
 ## Current Status
 - Current milestone: M2 — Single Widget UI
-- Current task: M2 remains pending Linux X11 visual verification; M3 Codex widget prep is allowed only where it does not depend on the blocked GUI check
-- Last completed task: Generalized the frontend usage widget renderer for Claude/Codex provider views
+- Current task: M2 remains pending Linux X11 visual verification; M3 frontend widget work is proceeding only where it does not depend on the blocked GUI check
+- Last completed task: Added Codex mock widget to the desktop dashboard shell
 - Last command run: `npm test`, `npm run build`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`
 - Last test result: Passed — `npm run build`, frontend Node tests, Rust fmt check, Rust 49 lib tests, 4 smoke tests, 5 contract tests. GUI smoke remains blocked in the current TTY session because `DISPLAY` is unset.
 - Next recommended command: `npm run build && npm test && cargo test --manifest-path src-tauri/Cargo.toml`
 - Blocking issue: Linux X11 visual verification is pending; current session is `XDG_SESSION_TYPE=tty` with no `DISPLAY`. Do not mark or commit M2 complete until that check is done.
 - Git status note: M2/M3-prep frontend/Tauri files are still uncommitted; `.codex/` remains local untracked tooling config and should not be committed.
-- Updated at: 2026-06-11 15:10 UTC
+- Updated at: 2026-06-11 15:15 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -27,6 +27,7 @@
 | 2026-06-11 | Reject token-like material in app config on load/write | Unknown config keys are preserved only when they do not contain token-like keys or Bearer strings | `src-tauri/src/config.rs` |
 | 2026-06-11 | Keep hover disk/glow effects disabled on Linux transparent WebKit, but expose last update age on hover | Manual M2 checks showed persistent transparent-window artifacts from disk/shadow hover effects; UI-5 still needs a hover-accessible update age | `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/src/widget.js`, `frontend/tests/widget.test.mjs` |
 | 2026-06-11 | Generalize the usage widget renderer before adding the full Codex widget | This is safe while M2 visual verification is blocked because it is frontend-only, provider-neutral, and covered by Node DOM tests | `frontend/src/widget.js`, `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
+| 2026-06-11 | Add Codex as a mock dashboard widget before real provider polling | Keeps M3 UI work moving without reading tokens or calling real APIs from the app shell | `src-tauri/src/main.rs`, `src-tauri/tauri.conf.json`, `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
 
 ## Milestone Checklist
 
@@ -61,7 +62,8 @@
 
 ### M3 — Three Widgets and Settings
 - [x] Generalize usage widget renderer for Claude/Codex provider views
-- [ ] Add Codex widget
+- [x] Add Codex widget shell with mock snapshot
+- [ ] Wire Codex widget to real provider runtime
 - [ ] Add Pomodoro widget
 - [ ] Add settings window
 - [ ] Add config persistence
@@ -290,6 +292,15 @@
 - Result: Added `renderUsageWidget()` and provider view metadata for Claude/Codex, kept `renderClaudeWidget()` as a compatibility wrapper, added Codex brand CSS tokens, switched the runtime entry to the generic renderer, and expanded Node tests for Codex DOM, provider-neutral state classes, missing secondary window, missing primary window, invalid `fetched_at`, and runtime import binding.
 - Git note: This M2 shell plus M3-prep renderer generalization was committed with message `feat: add single widget shell`. `.codex/` remains local tooling config and must stay out of commits.
 - Next step: Either run the pending Linux X11 visual verification and commit the M2 checkpoint, or continue with the actual M3 Codex widget using the generic renderer.
+
+### 2026-06-11 15:15 UTC
+- Agent: main
+- Task: Add Codex widget shell using mock snapshots
+- Files changed: `src-tauri/src/main.rs`, `src-tauri/tauri.conf.json`, `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Added `mock_usage_snapshots()` returning Claude and Codex snapshots, rendered both widgets through `renderUsageDashboard()`, widened the transparent widget window to 340px, added horizontal dashboard layout, and covered dashboard/Codex/Tauri-width behavior in Node tests. No real token files are read and no real APIs are called by this app shell path.
+- Git note: This M3 checkpoint was committed with message `feat: add codex widget shell`; `.codex/` remains untracked local tooling config and must stay out of commits.
+- Next step: Decide whether to wire the Codex widget to real provider runtime or start Pomodoro.
 
 ## Known Issues
 | Issue | Severity | Status | Next Action |

@@ -6,6 +6,7 @@ import {
   providerView,
   remainingFraction,
   renderClaudeWidget,
+  renderUsageDashboard,
   renderUsageWidget,
   ticksSvg,
   visualClassForSnapshot,
@@ -80,6 +81,23 @@ test('renders Codex usage widget through the generic renderer', async () => {
   assert.match(css, /\.widget\.codex\s*\{\s*--brand: var\(--codex\);/);
 });
 
+test('renders Claude and Codex widgets in a horizontal dashboard', async () => {
+  const html = renderUsageDashboard([
+    snapshot('NORMAL', 34, 'claude'),
+    snapshot('WARN', 82, 'codex'),
+  ], { now: NOW });
+  const css = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8');
+
+  assert.match(html, /<main class="dashboard" aria-label="Token usage dashboard">/);
+  assert.match(html, /class="widget claude"/);
+  assert.match(html, /class="widget codex low"/);
+  assert.equal((html.match(/class="widget /g) ?? []).length, 2);
+  assert.equal((html.match(/class="arc-main"/g) ?? []).length, 2);
+  assert.equal((html.match(/class="arc-sec"/g) ?? []).length, 2);
+  assert.match(css, /\.dashboard\s*\{[^}]*display: flex;/s);
+  assert.match(css, /\.dashboard\s*\{[^}]*gap: 20px;/s);
+});
+
 test('renders provider-neutral state classes for Claude and Codex', () => {
   for (const provider of ['claude', 'codex']) {
     assert.match(renderUsageWidget(snapshot('CRITICAL', 100, provider), { now: NOW }), new RegExp(`widget ${provider} depleted`));
@@ -146,19 +164,30 @@ test('runtime widget avoids hover visuals that persist in transparent windows', 
   const css = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8');
   const js = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
 
-  assert.match(js, /import \{ renderUsageWidget \} from '\.\/widget\.js';/);
+  assert.match(js, /import \{ renderUsageDashboard \} from '\.\/widget\.js';/);
+  assert.match(js, /mock_usage_snapshots/);
+  assert.match(js, /querySelectorAll\('\.widget'\)/);
   assert.doesNotMatch(js, /renderClaudeWidget/);
   assert.doesNotMatch(css, /\.widget:hover \.disk/);
   assert.doesNotMatch(css, /\.widget:hover \.arc-main/);
   assert.match(js, /classList\.add\('is-hovered'\)/);
   assert.match(js, /classList\.remove\('is-hovered'\)/);
-  assert.match(js, /addEventListener\('mouseleave', clearHover\)/);
+  assert.match(js, /addEventListener\('mouseleave', \(\) => clearHover\(widget\)\)/);
   assert.match(js, /startDragging/);
   assert.doesNotMatch(css, /transition: background/);
   assert.doesNotMatch(css, /\.widget\.is-hovered \.disk/);
   assert.doesNotMatch(css, /\.widget\.is-hovered \.num/);
   assert.doesNotMatch(css, /\.widget\.is-hovered [^{]+\{[^}]*box-shadow:/s);
   assert.doesNotMatch(css, /\.widget\.is-hovered [^{]+\{[^}]*drop-shadow/s);
+});
+
+test('Tauri widget window is wide enough for Claude and Codex gauges', async () => {
+  const config = JSON.parse(await readFile(new URL('../../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
+  const window = config.app.windows.find((item) => item.label === 'claude-widget');
+
+  assert.equal(window.width, 340);
+  assert.equal(window.minWidth, 340);
+  assert.equal(window.height, 180);
 });
 
 test('hover exposes last update age without changing transparent disk visuals', async () => {

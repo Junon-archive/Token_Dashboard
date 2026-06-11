@@ -1,6 +1,6 @@
-import { renderUsageWidget } from './widget.js';
+import { renderUsageDashboard } from './widget.js';
 
-const fallbackSnapshot = {
+const fallbackSnapshots = [{
   provider: 'claude',
   state: 'NORMAL',
   primary: {
@@ -15,30 +15,43 @@ const fallbackSnapshot = {
   fetched_at: new Date().toISOString(),
   is_stale: false,
   error: null,
-};
+}, {
+  provider: 'codex',
+  state: 'WARN',
+  primary: {
+    used_pct: 82,
+    resets_at: new Date(Date.now() + 102 * 60000).toISOString(),
+  },
+  secondary: {
+    used_pct: 47,
+    resets_at: new Date(Date.now() + 3 * 24 * 60 * 60000).toISOString(),
+  },
+  extra: null,
+  fetched_at: new Date().toISOString(),
+  is_stale: false,
+  error: null,
+}];
 
-async function loadSnapshot() {
+async function loadSnapshots() {
   const invoke = window.__TAURI__?.core?.invoke;
   if (!invoke) {
-    return fallbackSnapshot;
+    return fallbackSnapshots;
   }
   try {
-    return await invoke('mock_claude_snapshot');
+    return await invoke('mock_usage_snapshots');
   } catch {
-    return fallbackSnapshot;
+    return fallbackSnapshots;
   }
 }
 
 const root = document.querySelector('#app');
-root.innerHTML = renderUsageWidget(await loadSnapshot());
+root.innerHTML = renderUsageDashboard(await loadSnapshots());
 
-const widget = root.querySelector('.widget');
-
-function clearHover() {
+function clearHover(widget) {
   widget?.classList.remove('is-hovered');
 }
 
-function syncHover(event) {
+function syncHover(widget, event) {
   if (!widget) {
     return;
   }
@@ -51,19 +64,19 @@ function syncHover(event) {
   widget.classList.toggle('is-hovered', isInside);
 }
 
-if (widget) {
+for (const widget of root.querySelectorAll('.widget')) {
   widget.addEventListener('mouseenter', () => widget.classList.add('is-hovered'));
-  widget.addEventListener('mouseleave', clearHover);
+  widget.addEventListener('mouseleave', () => clearHover(widget));
   widget.addEventListener('pointerenter', () => widget.classList.add('is-hovered'));
-  widget.addEventListener('pointerleave', clearHover);
-  window.addEventListener('mousemove', syncHover);
-  window.addEventListener('pointermove', syncHover);
-  window.addEventListener('mouseleave', clearHover);
-  document.addEventListener('mouseleave', clearHover);
-  window.addEventListener('blur', clearHover);
+  widget.addEventListener('pointerleave', () => clearHover(widget));
+  window.addEventListener('mousemove', (event) => syncHover(widget, event));
+  window.addEventListener('pointermove', (event) => syncHover(widget, event));
+  window.addEventListener('mouseleave', () => clearHover(widget));
+  document.addEventListener('mouseleave', () => clearHover(widget));
+  window.addEventListener('blur', () => clearHover(widget));
   document.addEventListener('mouseout', (event) => {
     if (!event.relatedTarget) {
-      clearHover();
+      clearHover(widget);
     }
   });
 

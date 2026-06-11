@@ -46,6 +46,16 @@ body {
   place-items: center;
 }
 
+.dashboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  width: max-content;
+  height: var(--size);
+  margin: 0;
+}
+
 .widget {
   position: relative;
   width: var(--size);

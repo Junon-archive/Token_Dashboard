@@ -141,3 +141,9 @@ export function renderUsageWidget(snapshot, options = {}) {
 export function renderClaudeWidget(snapshot, options = {}) {
   return renderUsageWidget({ ...snapshot, provider: 'claude' }, options);
 }
+
+export function renderUsageDashboard(snapshots, options = {}) {
+  const items = Array.isArray(snapshots) ? snapshots : [snapshots].filter(Boolean);
+  const widgets = items.map((snapshot) => renderUsageWidget(snapshot, options)).join('');
+  return `<main class="dashboard" aria-label="Token usage dashboard">${widgets}</main>`;
+}
