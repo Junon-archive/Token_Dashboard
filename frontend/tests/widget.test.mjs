@@ -188,6 +188,7 @@ test('Tauri widget window is wide enough for Claude and Codex gauges', async () 
   const config = JSON.parse(await readFile(new URL('../../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
   const window = config.app.windows.find((item) => item.label === 'claude-widget');
 
+  assert.equal(config.app.withGlobalTauri, true);
   assert.equal(window.width, 340);
   assert.equal(window.minWidth, 340);
   assert.equal(window.height, 180);
