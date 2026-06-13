@@ -1,5 +1,6 @@
 pub mod backoff;
 pub mod config;
+pub mod dashboard;
 pub mod http;
 pub mod masking;
 pub mod providers;

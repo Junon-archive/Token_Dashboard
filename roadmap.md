@@ -2,14 +2,14 @@
 
 ## Current Status
 - Current milestone: M3 — Three Widgets and Settings
-- Current task: Wire the desktop dashboard to real provider snapshots without persisting tokens
-- Last completed task: Completed M2 Linux X11 visual verification and screenshot-style tick mark polish
-- Last command run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
-- Last test result: Passed — frontend Node tests, `npm run build`, Rust 49 lib tests, 4 smoke tests, 5 contract tests. User confirmed Linux X11 transparency, layout, tick visibility, frameless/always-on-top/skip-taskbar, drag, and hover update badge behavior.
+- Current task: Run Linux desktop visual/smoke check for real provider snapshot bridge, then start Pomodoro widget
+- Last completed task: Wired the desktop dashboard command to real Claude/Codex provider snapshots through a frontend-safe DTO
+- Last command run: `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`, `npm test`, `npm run build`
+- Last test result: Passed — frontend Node tests, `npm run build`, Rust fmt check, Rust 52 lib tests, 4 smoke tests, 5 contract tests. User confirmed prior Linux X11 M2 transparency/layout/window behavior.
 - Next recommended command: `npm run build && npm test && cargo test --manifest-path src-tauri/Cargo.toml`
 - Blocking issue: None for M2. macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled before declaring cross-platform provider integration complete.
 - Git status note: `.codex/` remains local untracked tooling config and should not be committed. The screenshot reference file is local input and is not required for runtime.
-- Updated at: 2026-06-13 05:28 UTC
+- Updated at: 2026-06-13 05:35 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -29,6 +29,8 @@
 | 2026-06-11 | Generalize the usage widget renderer before adding the full Codex widget | This is safe while M2 visual verification is blocked because it is frontend-only, provider-neutral, and covered by Node DOM tests | `frontend/src/widget.js`, `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
 | 2026-06-11 | Add Codex as a mock dashboard widget before real provider polling | Keeps M3 UI work moving without reading tokens or calling real APIs from the app shell | `src-tauri/src/main.rs`, `src-tauri/tauri.conf.json`, `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
 | 2026-06-13 | Accept screenshot-style block tick marks for the gauge | Manual review found the exact design-reference line ticks too plain on Linux desktop backgrounds; rounded block ticks with 45-degree state-colored major marks look closer to the provided reference | `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
+| 2026-06-13 | Expose frontend-safe provider DTO instead of internal `UsageSnapshot` | Real provider wiring must not expose raw provider errors, extras, endpoints, token paths, account IDs, or auth material to the webview | `src-tauri/src/dashboard.rs`, `src-tauri/src/main.rs` |
+| 2026-06-13 | Restrict token-bearing Codex usage endpoint to `/backend-api/wham/usage` | Real dashboard polling should send bearer tokens only to the confirmed usage endpoint, not arbitrary `chatgpt.com/backend-api/*` paths | `src-tauri/src/config.rs`, `src-tauri/src/providers/codex.rs`, `src-tauri/tests/m1_contract.rs` |
 
 ## Milestone Checklist
 
@@ -64,7 +66,7 @@
 ### M3 — Three Widgets and Settings
 - [x] Generalize usage widget renderer for Claude/Codex provider views
 - [x] Add Codex widget shell with mock snapshot
-- [ ] Wire Codex widget to real provider runtime
+- [x] Wire Claude/Codex widgets to real provider runtime
 - [ ] Add Pomodoro widget
 - [ ] Add settings window
 - [ ] Add config persistence
@@ -343,6 +345,14 @@
 - Result: User confirmed Linux X11 M2 visual checks passed, including transparent background, disk edge, bright-background tick visibility, frameless/always-on-top/skip-taskbar behavior, drag movement, and hover update badge without residual disk/shadow artifacts. Screenshot-style block ticks with state-colored major marks were accepted.
 - Next step: Commit the visual polish, then continue M3 by replacing mock dashboard snapshots with real provider snapshots while keeping token reads local and non-persistent.
 
+### 2026-06-13 05:35 UTC
+- Agent: main + main-planner/security-privacy-specialist/test-specialist read-only subagents
+- Task: Start M3 real provider snapshot bridge
+- Files changed: `src-tauri/src/dashboard.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/main.rs`, `src-tauri/src/token_source.rs`, `src-tauri/src/config.rs`, `src-tauri/src/providers/codex.rs`, `src-tauri/tests/m1_contract.rs`, `frontend/src/main.js`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`, `npm test`, `npm run build`
+- Result: Replaced `mock_usage_snapshots` with `usage_snapshots`, added a dashboard runtime that reads CLI-owned Claude/Codex token sources, uses existing fixture-tested provider refresh paths with memory-only cache, degrades missing token sources to `NOT_LOGGED_IN`, and exposes only frontend-safe snapshot fields. Tightened Codex token-bearing endpoint allowlist to the confirmed `https://chatgpt.com/backend-api/wham/usage`.
+- Next step: Run Linux desktop visual check for the real provider bridge; expected result is two widgets populated from local providers or safe degraded states without exposing secrets. If visual check passes, continue M3 with Pomodoro widget/runtime.
+
 ## Known Issues
 | Issue | Severity | Status | Next Action |
 |---|---|---|---|
@@ -352,6 +362,7 @@
 | Claude local smoke returns AUTH_ERROR | Low | Resolved | Fixed numeric `expiresAt` parsing; smoke now returns `NORMAL` |
 | Codex 20-poll smoke is complete | Low | Done | Recorded as WARN throughout; no 429 observed in the captured run |
 | macOS Keychain cannot be verified on current Ubuntu environment | Medium | Open | Implement macOS-gated source with `security` fallback and document manual verification |
+| Real provider bridge Linux visual check | Medium | Open | Launch the Tauri app from an X11 desktop and verify Claude/Codex widgets render from real provider snapshots or safe degraded states, while existing transparent/frameless/drag behavior remains intact. |
 | M2 Linux X11 visual verification | High | Resolved | User confirmed transparency, layout, tick visibility, frameless/always-on-top/skip-taskbar, drag, and hover update badge behavior on Linux X11. |
 | M2 visual tuning intentionally diverges from design-reference token literals | Medium | Resolved | Accepted screenshot-style block ticks, stronger bright-background tick contrast, disk radial mask, and disabled hover disk/glow effects as implementation decisions for Linux transparent WebKit. |
 

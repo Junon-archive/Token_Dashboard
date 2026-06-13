@@ -45,7 +45,7 @@ fn codex_usage_path_defaults_to_verified_wham_usage_path() {
 fn endpoint_allowlist_blocks_unknown_hosts_before_tokens_attach() {
     assert_eq!(
         validate_endpoint_url("https://chatgpt.com/backend-api/usage"),
-        Ok(())
+        Err(EndpointError::HostNotAllowed)
     );
     assert_eq!(
         validate_endpoint_url("https://chatgpt.com.evil.invalid/backend-api/usage"),

@@ -166,8 +166,21 @@ pub fn validate_endpoint_url(url: &str) -> Result<(), EndpointError> {
 
     match parsed.host_str() {
         Some("api.anthropic.com") if parsed.path() == "/api/oauth/usage" => Ok(()),
-        Some("chatgpt.com") if parsed.path().starts_with("/backend-api/") => Ok(()),
+        Some("chatgpt.com") if parsed.path() == "/backend-api/wham/usage" => Ok(()),
         Some("api.anthropic.com" | "chatgpt.com") => Err(EndpointError::HostNotAllowed),
+        _ => Err(EndpointError::HostNotAllowed),
+    }
+}
+
+fn validate_codex_base_url(url: &str) -> Result<(), EndpointError> {
+    let parsed = reqwest::Url::parse(url).map_err(|_| EndpointError::InvalidUrl)?;
+    if parsed.scheme() != "https" {
+        return Err(EndpointError::InvalidScheme);
+    }
+
+    match parsed.host_str() {
+        Some("chatgpt.com") if parsed.path() == "/backend-api/" => Ok(()),
+        Some("chatgpt.com") => Err(EndpointError::HostNotAllowed),
         _ => Err(EndpointError::HostNotAllowed),
     }
 }
@@ -187,7 +200,7 @@ pub fn validate_refresh_endpoint_url(url: &str) -> Result<(), EndpointError> {
 }
 
 pub fn join_codex_usage_url(config: &EndpointConfig) -> Result<Option<String>, EndpointError> {
-    validate_endpoint_url(&config.codex_base)?;
+    validate_codex_base_url(&config.codex_base)?;
     let Some(path) = &config.codex_usage_path else {
         return Ok(None);
     };
@@ -211,8 +224,12 @@ mod tests {
             Ok(())
         );
         assert_eq!(
-            validate_endpoint_url("https://chatgpt.com/backend-api/example"),
+            validate_endpoint_url("https://chatgpt.com/backend-api/wham/usage"),
             Ok(())
+        );
+        assert_eq!(
+            validate_endpoint_url("https://chatgpt.com/backend-api/example"),
+            Err(EndpointError::HostNotAllowed)
         );
         assert_eq!(
             validate_endpoint_url("https://api.anthropic.com/api/oauth/profile"),

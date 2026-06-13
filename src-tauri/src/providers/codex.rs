@@ -310,12 +310,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn provider_uses_override_path_and_fixture_http_without_real_api() {
+    async fn provider_uses_configured_documented_path_and_fixture_http_without_real_api() {
         use crate::http::testsupport::FixtureHttpClient;
 
         let provider = CodexProvider;
         let endpoints = EndpointConfig {
-            codex_usage_path: Some("/backend-api/synthetic-usage".to_string()),
+            codex_usage_path: Some("wham/usage".to_string()),
             ..EndpointConfig::default()
         };
         let http = FixtureHttpClient::new(

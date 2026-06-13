@@ -38,7 +38,7 @@ async function loadSnapshots() {
     return fallbackSnapshots;
   }
   try {
-    return await invoke('mock_usage_snapshots');
+    return await invoke('usage_snapshots');
   } catch {
     return fallbackSnapshots;
   }

@@ -165,7 +165,8 @@ test('runtime widget avoids hover visuals that persist in transparent windows', 
   const js = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
 
   assert.match(js, /import \{ renderUsageDashboard \} from '\.\/widget\.js';/);
-  assert.match(js, /mock_usage_snapshots/);
+  assert.match(js, /usage_snapshots/);
+  assert.doesNotMatch(js, /mock_usage_snapshots/);
   assert.match(js, /querySelectorAll\('\.widget'\)/);
   assert.doesNotMatch(js, /renderClaudeWidget/);
   assert.doesNotMatch(css, /\.widget:hover \.disk/);
