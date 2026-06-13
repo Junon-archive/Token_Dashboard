@@ -32,6 +32,18 @@ const fallbackSnapshots = [{
   error: null,
 }];
 
+function degradedSnapshots() {
+  const fetchedAt = new Date().toISOString();
+  return ['claude', 'codex'].map((provider) => ({
+    provider,
+    state: 'STALE',
+    primary: null,
+    secondary: null,
+    fetched_at: fetchedAt,
+    is_stale: true,
+  }));
+}
+
 async function loadSnapshots() {
   const invoke = window.__TAURI__?.core?.invoke;
   if (!invoke) {
@@ -40,7 +52,7 @@ async function loadSnapshots() {
   try {
     return await invoke('usage_snapshots');
   } catch {
-    return fallbackSnapshots;
+    return degradedSnapshots();
   }
 }
 
