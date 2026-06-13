@@ -55,7 +55,7 @@ test('renders Claude widget DOM with expected gauge structure', () => {
   assert.match(html, /<div class="lbl">Claude<\/div>/);
   assert.match(html, /<div class="update-badge">/);
   assert.match(html, /12m ago/);
-  assert.equal((html.match(/class="tick"/g) ?? []).length, 48);
+  assert.equal((html.match(/class="tick/g) ?? []).length, 48);
   assert.equal((html.match(/class="arc-main"/g) ?? []).length, 1);
   assert.equal((html.match(/class="arc-sec"/g) ?? []).length, 1);
 });
@@ -197,15 +197,24 @@ test('hover exposes last update age without changing transparent disk visuals', 
   assert.match(css, /\.widget\.stale \.update-badge\s*\{\s*display: flex;/);
 });
 
-test('generates exactly forty-eight gauge ticks', () => {
-  assert.equal((ticksSvg().match(/<line class="tick"/g) ?? []).length, 48);
+test('generates forty-eight block-style gauge ticks', () => {
+  const ticks = ticksSvg();
+
+  assert.equal((ticks.match(/<rect class="tick/g) ?? []).length, 48);
+  assert.equal((ticks.match(/class="tick tick-major"/g) ?? []).length, 8);
+  assert.match(ticks, /rx="0\.70"/);
+  assert.match(ticks, /transform="rotate\(45\.00 70 70\)"/);
 });
 
-test('tick marks are visible on light backgrounds', async () => {
+test('tick marks use subtle block fills instead of thin strokes', async () => {
   const css = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8');
 
-  assert.match(css, /--tick: rgba\(255, 255, 255, \.46\);/);
-  assert.match(css, /\.tick\s*\{\s*stroke: var\(--tick\);\s*stroke-width: 1\.5;/);
+  assert.match(css, /--tick: rgba\(255, 255, 255, \.24\);/);
+  assert.match(css, /\.tick\s*\{\s*fill: var\(--tick\);/);
+  assert.match(css, /\.tick-major\s*\{\s*fill: var\(--arc\);\s*opacity: \.82;/);
+  assert.doesNotMatch(css, /\.widget\.claude \.tick-major/);
+  assert.doesNotMatch(css, /\.widget\.codex \.tick-major/);
+  assert.doesNotMatch(css, /\.tick\s*\{[^}]*stroke-width:/s);
 });
 
 test('disk edge fades instead of ending with a hard border', async () => {

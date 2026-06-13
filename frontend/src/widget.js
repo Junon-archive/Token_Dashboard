@@ -5,8 +5,11 @@ const SEC_R = 43;
 const C_MAIN = 2 * Math.PI * MAIN_R;
 const C_SEC = 2 * Math.PI * SEC_R;
 const TICK_N = 48;
-const TICK_RI = 62.5;
-const TICK_RO = 66;
+const TICK_Y = 7;
+const TICK_MINOR_W = 1.4;
+const TICK_MINOR_H = 4.5;
+const TICK_MAJOR_W = 2;
+const TICK_MAJOR_H = 7;
 
 const LAMP_KEY =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="4.2"/><path d="M11 11l8 8"/><path d="M16 16l2.2-2.2"/><path d="M18.2 18.2l1.6-1.6"/></svg>';
@@ -56,12 +59,13 @@ export function visualClassForSnapshot(snapshot) {
 export function ticksSvg() {
   let output = '';
   for (let i = 0; i < TICK_N; i += 1) {
-    const angle = (i / TICK_N) * Math.PI * 2;
-    const sx = CX + TICK_RI * Math.sin(angle);
-    const sy = CY - TICK_RI * Math.cos(angle);
-    const ex = CX + TICK_RO * Math.sin(angle);
-    const ey = CY - TICK_RO * Math.cos(angle);
-    output += `<line class="tick" x1="${sx.toFixed(2)}" y1="${sy.toFixed(2)}" x2="${ex.toFixed(2)}" y2="${ey.toFixed(2)}"/>`;
+    const isMajor = i % 6 === 0;
+    const width = isMajor ? TICK_MAJOR_W : TICK_MINOR_W;
+    const height = isMajor ? TICK_MAJOR_H : TICK_MINOR_H;
+    const x = CX - width / 2;
+    const rotation = (i / TICK_N) * 360;
+    const className = isMajor ? 'tick tick-major' : 'tick';
+    output += `<rect class="${className}" x="${x.toFixed(2)}" y="${TICK_Y}" width="${width}" height="${height}" rx="${(width / 2).toFixed(2)}" transform="rotate(${rotation.toFixed(2)} ${CX} ${CY})"/>`;
   }
   return output;
 }
@@ -128,7 +132,7 @@ export function renderUsageWidget(snapshot, options = {}) {
 
   return `<section class="${classes}" data-provider="${provider.className}" data-state="${snapshot.state}" data-tauri-drag-region="deep" aria-label="${provider.ariaLabel}">
     <div class="disk"></div>
-    <svg class="gauge" viewBox="0 0 140 140" aria-hidden="true">${ticksSvg()}${arcsSvg(snapshot.primary, snapshot.secondary)}</svg>
+    <svg class="gauge" viewBox="0 0 140 140" aria-hidden="true">${arcsSvg(snapshot.primary, snapshot.secondary)}${ticksSvg()}</svg>
     <div class="center">
       <div class="num">${countdown}</div>
       <div class="lbl">${provider.label}</div>

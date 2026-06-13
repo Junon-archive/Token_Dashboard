@@ -1,15 +1,15 @@
 # Token Dashboard Roadmap
 
 ## Current Status
-- Current milestone: M2 — Single Widget UI
-- Current task: M2 remains pending Linux X11 visual verification; M3 frontend widget work is proceeding only where it does not depend on the blocked GUI check
-- Last completed task: Added Codex mock widget to the desktop dashboard shell
-- Last command run: `npm test`, `npm run build`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`
-- Last test result: Passed — `npm run build`, frontend Node tests, Rust fmt check, Rust 49 lib tests, 4 smoke tests, 5 contract tests. GUI smoke remains blocked in the current TTY session because `DISPLAY` is unset.
+- Current milestone: M3 — Three Widgets and Settings
+- Current task: Wire the desktop dashboard to real provider snapshots without persisting tokens
+- Last completed task: Completed M2 Linux X11 visual verification and screenshot-style tick mark polish
+- Last command run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Last test result: Passed — frontend Node tests, `npm run build`, Rust 49 lib tests, 4 smoke tests, 5 contract tests. User confirmed Linux X11 transparency, layout, tick visibility, frameless/always-on-top/skip-taskbar, drag, and hover update badge behavior.
 - Next recommended command: `npm run build && npm test && cargo test --manifest-path src-tauri/Cargo.toml`
-- Blocking issue: Linux X11 visual verification is pending; current session is `XDG_SESSION_TYPE=tty` with no `DISPLAY`. Do not mark or commit M2 complete until that check is done.
-- Git status note: M2/M3-prep frontend/Tauri files are still uncommitted; `.codex/` remains local untracked tooling config and should not be committed.
-- Updated at: 2026-06-11 15:15 UTC
+- Blocking issue: None for M2. macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled before declaring cross-platform provider integration complete.
+- Git status note: `.codex/` remains local untracked tooling config and should not be committed. The screenshot reference file is local input and is not required for runtime.
+- Updated at: 2026-06-13 05:28 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -28,6 +28,7 @@
 | 2026-06-11 | Keep hover disk/glow effects disabled on Linux transparent WebKit, but expose last update age on hover | Manual M2 checks showed persistent transparent-window artifacts from disk/shadow hover effects; UI-5 still needs a hover-accessible update age | `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/src/widget.js`, `frontend/tests/widget.test.mjs` |
 | 2026-06-11 | Generalize the usage widget renderer before adding the full Codex widget | This is safe while M2 visual verification is blocked because it is frontend-only, provider-neutral, and covered by Node DOM tests | `frontend/src/widget.js`, `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
 | 2026-06-11 | Add Codex as a mock dashboard widget before real provider polling | Keeps M3 UI work moving without reading tokens or calling real APIs from the app shell | `src-tauri/src/main.rs`, `src-tauri/tauri.conf.json`, `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
+| 2026-06-13 | Accept screenshot-style block tick marks for the gauge | Manual review found the exact design-reference line ticks too plain on Linux desktop backgrounds; rounded block ticks with 45-degree state-colored major marks look closer to the provided reference | `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
 
 ## Milestone Checklist
 
@@ -57,8 +58,8 @@
 - [x] Implement 7 logical state visual mapping
 - [x] Add mock provider UI tests
 - [x] Add hover-accessible last update display
-- [ ] Verify Linux X11 behavior where possible
-- [ ] Commit M2
+- [x] Verify Linux X11 behavior where possible
+- [x] Commit M2
 
 ### M3 — Three Widgets and Settings
 - [x] Generalize usage widget renderer for Claude/Codex provider views
@@ -302,6 +303,46 @@
 - Git note: This M3 checkpoint was committed with message `feat: add codex widget shell`; `.codex/` remains untracked local tooling config and must stay out of commits.
 - Next step: Decide whether to wire the Codex widget to real provider runtime or start Pomodoro.
 
+### 2026-06-13 05:05 UTC
+- Agent: main
+- Task: Rework gauge tick mark style from screenshot reference
+- Files changed: `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Replaced thin radial line ticks with short rounded block ticks, added larger brand-tinted major ticks every 6 marks, and switched tick styling from stroke-based to fill-based to better match the provided gauge screenshot.
+- Next step: Re-run manual visual check on bright and dark backgrounds, focusing on whether the new tick marks feel less busy and more integrated with the gauge.
+
+### 2026-06-13 05:12 UTC
+- Agent: main
+- Task: Improve major tick mark contrast
+- Files changed: `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`
+- Result: Changed every-45-degree major ticks from `color-mix()` to direct provider gauge color `var(--arc)` with `.82` opacity to avoid black/low-contrast rendering in WebKit.
+- Next step: Re-run manual visual check for major tick visibility on bright and dark backgrounds.
+
+### 2026-06-13 05:17 UTC
+- Agent: main
+- Task: Fix major tick color not changing in the app
+- Files changed: `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`
+- Result: Replaced `var(--arc)` major tick indirection with provider-specific `.widget.claude/.widget.codex` fill rules and moved ticks after rings in SVG draw order so major ticks render above the gauge/track.
+- Next step: Re-run manual visual check for orange Claude and teal Codex major ticks.
+
+### 2026-06-13 05:21 UTC
+- Agent: main
+- Task: Make major ticks follow state gauge color
+- Files changed: `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`
+- Result: Changed major tick fill to `var(--arc)` so the every-45-degree ticks follow provider color in NORMAL, caution color in WARN/low, and danger color in CRITICAL/depleted states.
+- Next step: Re-run manual visual check for NORMAL/WARN/CRITICAL major tick colors.
+
+### 2026-06-13 05:28 UTC
+- Agent: main
+- Task: Close M2 visual verification and tick polish
+- Files changed: `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: User confirmed Linux X11 M2 visual checks passed, including transparent background, disk edge, bright-background tick visibility, frameless/always-on-top/skip-taskbar behavior, drag movement, and hover update badge without residual disk/shadow artifacts. Screenshot-style block ticks with state-colored major marks were accepted.
+- Next step: Commit the visual polish, then continue M3 by replacing mock dashboard snapshots with real provider snapshots while keeping token reads local and non-persistent.
+
 ## Known Issues
 | Issue | Severity | Status | Next Action |
 |---|---|---|---|
@@ -311,8 +352,8 @@
 | Claude local smoke returns AUTH_ERROR | Low | Resolved | Fixed numeric `expiresAt` parsing; smoke now returns `NORMAL` |
 | Codex 20-poll smoke is complete | Low | Done | Recorded as WARN throughout; no 429 observed in the captured run |
 | macOS Keychain cannot be verified on current Ubuntu environment | Medium | Open | Implement macOS-gated source with `security` fallback and document manual verification |
-| Linux X11 visual verification cannot run in current session | High | Open | Re-run `timeout 5 cargo run --manifest-path src-tauri/Cargo.toml --bin token-dashboard` from an X11 desktop session with `DISPLAY` set, then verify transparency, always-on-top, skip-taskbar, and drag by sight. |
-| M2 visual tuning intentionally diverges from design-reference token literals | Medium | Open | Manual bright-background review increased tick contrast and replaced the disk border with a radial mask; either accept this as an implementation decision or revise back to exact SPEC token values before M2 commit. |
+| M2 Linux X11 visual verification | High | Resolved | User confirmed transparency, layout, tick visibility, frameless/always-on-top/skip-taskbar, drag, and hover update badge behavior on Linux X11. |
+| M2 visual tuning intentionally diverges from design-reference token literals | Medium | Resolved | Accepted screenshot-style block ticks, stronger bright-background tick contrast, disk radial mask, and disabled hover disk/glow effects as implementation decisions for Linux transparent WebKit. |
 
 ## Resume Instructions
 If the session is interrupted, resume by:

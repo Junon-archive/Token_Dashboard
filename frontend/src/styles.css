@@ -7,7 +7,7 @@
   --danger: #e5484d;
   --track-main: rgba(255, 255, 255, .12);
   --track-sec: rgba(255, 255, 255, .07);
-  --tick: rgba(255, 255, 255, .46);
+  --tick: rgba(255, 255, 255, .24);
   --text: #f3f4f6;
   --label: rgba(244, 246, 250, .55);
   --disk-bg: rgba(20, 21, 26, .52);
@@ -104,8 +104,12 @@ svg.gauge {
 }
 
 .tick {
-  stroke: var(--tick);
-  stroke-width: 1.5;
+  fill: var(--tick);
+}
+
+.tick-major {
+  fill: var(--arc);
+  opacity: .82;
 }
 
 .ring-track-main {
