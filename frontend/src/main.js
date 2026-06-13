@@ -1,5 +1,17 @@
 import { renderUsageDashboard } from './widget.js';
 
+const POMODORO_DEFAULTS = {
+  focusMin: 20,
+  breakMin: 5,
+  dialFullMin: 60,
+};
+
+const pomodoro = {
+  state: 'FOCUS',
+  startedAt: Date.now(),
+  durationMs: POMODORO_DEFAULTS.focusMin * 60000,
+};
+
 const fallbackSnapshots = [{
   provider: 'claude',
   state: 'NORMAL',
@@ -44,6 +56,22 @@ function degradedSnapshots() {
   }));
 }
 
+function pomodoroSnapshot(now = new Date()) {
+  const elapsedMs = Math.max(0, now.getTime() - pomodoro.startedAt);
+  const usedPct = Math.min(100, (elapsedMs / (POMODORO_DEFAULTS.dialFullMin * 60000)) * 100);
+  return {
+    provider: 'pomodoro',
+    state: pomodoro.state,
+    primary: {
+      used_pct: usedPct,
+      resets_at: new Date(pomodoro.startedAt + pomodoro.durationMs).toISOString(),
+    },
+    secondary: null,
+    fetched_at: now.toISOString(),
+    is_stale: false,
+  };
+}
+
 async function loadSnapshots() {
   const invoke = window.__TAURI__?.core?.invoke;
   if (!invoke) {
@@ -57,7 +85,12 @@ async function loadSnapshots() {
 }
 
 const root = document.querySelector('#app');
-root.innerHTML = renderUsageDashboard(await loadSnapshots());
+let providerSnapshots = await loadSnapshots();
+
+function renderDashboard() {
+  root.innerHTML = renderUsageDashboard([...providerSnapshots, pomodoroSnapshot()]);
+  bindWidgetInteractions();
+}
 
 function clearHover(widget) {
   widget?.classList.remove('is-hovered');
@@ -76,31 +109,45 @@ function syncHover(widget, event) {
   widget.classList.toggle('is-hovered', isInside);
 }
 
-for (const widget of root.querySelectorAll('.widget')) {
-  widget.addEventListener('mouseenter', () => widget.classList.add('is-hovered'));
-  widget.addEventListener('mouseleave', () => clearHover(widget));
-  widget.addEventListener('pointerenter', () => widget.classList.add('is-hovered'));
-  widget.addEventListener('pointerleave', () => clearHover(widget));
-  window.addEventListener('mousemove', (event) => syncHover(widget, event));
-  window.addEventListener('pointermove', (event) => syncHover(widget, event));
-  window.addEventListener('mouseleave', () => clearHover(widget));
-  document.addEventListener('mouseleave', () => clearHover(widget));
-  window.addEventListener('blur', () => clearHover(widget));
-  document.addEventListener('mouseout', (event) => {
-    if (!event.relatedTarget) {
-      clearHover(widget);
-    }
-  });
+function bindWidgetInteractions() {
+  for (const widget of root.querySelectorAll('.widget')) {
+    widget.addEventListener('mouseenter', () => widget.classList.add('is-hovered'));
+    widget.addEventListener('mouseleave', () => clearHover(widget));
+    widget.addEventListener('pointerenter', () => widget.classList.add('is-hovered'));
+    widget.addEventListener('pointerleave', () => clearHover(widget));
 
-  widget.addEventListener(
-    'mousedown',
-    (event) => {
-      if (event.button !== 0 || event.detail !== 1) {
-        return;
-      }
-      event.preventDefault();
-      window.__TAURI__?.window?.getCurrentWindow?.().startDragging?.();
-    },
-    { capture: true },
-  );
+    widget.addEventListener(
+      'mousedown',
+      (event) => {
+        if (event.button !== 0 || event.detail !== 1) {
+          return;
+        }
+        event.preventDefault();
+        window.__TAURI__?.window?.getCurrentWindow?.().startDragging?.();
+      },
+      { capture: true },
+    );
+  }
 }
+
+window.addEventListener('mousemove', (event) => {
+  for (const widget of root.querySelectorAll('.widget')) {
+    syncHover(widget, event);
+  }
+});
+window.addEventListener('pointermove', (event) => {
+  for (const widget of root.querySelectorAll('.widget')) {
+    syncHover(widget, event);
+  }
+});
+window.addEventListener('mouseleave', () => root.querySelectorAll('.widget').forEach(clearHover));
+document.addEventListener('mouseleave', () => root.querySelectorAll('.widget').forEach(clearHover));
+window.addEventListener('blur', () => root.querySelectorAll('.widget').forEach(clearHover));
+document.addEventListener('mouseout', (event) => {
+  if (!event.relatedTarget) {
+    root.querySelectorAll('.widget').forEach(clearHover);
+  }
+});
+
+renderDashboard();
+setInterval(renderDashboard, 1000);

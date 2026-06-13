@@ -15,9 +15,9 @@
       {
         "label": "claude-widget",
         "title": "Token Dashboard",
-        "width": 340,
+        "width": 500,
         "height": 180,
-        "minWidth": 340,
+        "minWidth": 500,
         "minHeight": 180,
         "resizable": false,
         "decorations": false,

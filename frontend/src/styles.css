@@ -3,6 +3,10 @@
   --claude-bright: #e88a63;
   --codex: #46c2d4;
   --codex-bright: #62d4e3;
+  --pomodoro-focus: #f0563d;
+  --pomodoro-focus-bright: #ff6b52;
+  --pomodoro-break: #5fb98c;
+  --pomodoro-break-bright: #76cc9f;
   --caution: #ebb13e;
   --danger: #e5484d;
   --track-main: rgba(255, 255, 255, .12);
@@ -76,6 +80,11 @@ body {
 .widget.codex {
   --brand: var(--codex);
   --brand-bright: var(--codex-bright);
+}
+
+.widget.pomodoro {
+  --brand: var(--pomodoro-focus);
+  --brand-bright: var(--pomodoro-focus-bright);
 }
 
 .disk {
@@ -312,4 +321,15 @@ svg.gauge {
 .widget.autherr .lamp .lt {
   color: var(--danger);
   stroke: var(--danger);
+}
+
+.widget.pomodoro.break {
+  --arc: var(--pomodoro-break);
+  --brand: var(--pomodoro-break);
+  --brand-bright: var(--pomodoro-break-bright);
+}
+
+.widget.pomodoro.paused {
+  --arc-op: .42;
+  filter: grayscale(.35);
 }

@@ -29,6 +29,11 @@ const PROVIDERS = {
     label: 'Codex',
     ariaLabel: 'Codex usage widget',
   },
+  pomodoro: {
+    className: 'pomodoro',
+    label: 'Focus',
+    ariaLabel: 'Pomodoro timer widget',
+  },
 };
 
 export function providerView(provider) {
@@ -51,6 +56,12 @@ export function visualClassForSnapshot(snapshot) {
       return 'notin';
     case 'AUTH_ERROR':
       return 'autherr';
+    case 'FOCUS':
+      return 'focus';
+    case 'BREAK':
+      return 'break';
+    case 'PAUSED':
+      return 'paused';
     default:
       return 'stale';
   }
@@ -113,6 +124,14 @@ export function staleAgeLabel(fetchedAt, now = new Date()) {
   return `${minutes}m ago`;
 }
 
+export function formatRemainingMinutes(endsAt, now = new Date()) {
+  const endMs = new Date(endsAt).getTime();
+  if (!Number.isFinite(endMs)) {
+    return '--';
+  }
+  return String(Math.max(0, Math.ceil((endMs - now.getTime()) / 60000)));
+}
+
 function lampForSnapshot(snapshot) {
   if (snapshot.state === 'NOT_LOGGED_IN') {
     return { icon: LAMP_KEY, text: 'Sign in' };
@@ -146,8 +165,31 @@ export function renderClaudeWidget(snapshot, options = {}) {
   return renderUsageWidget({ ...snapshot, provider: 'claude' }, options);
 }
 
+export function renderPomodoroWidget(timer, options = {}) {
+  const now = options.now ?? new Date();
+  const classes = ['widget', 'pomodoro', visualClassForSnapshot(timer)].filter(Boolean).join(' ');
+  const label = timer.state === 'BREAK' ? 'Break' : timer.state === 'PAUSED' ? 'Paused' : 'Focus';
+  const minutes = formatRemainingMinutes(timer.primary?.resets_at, now);
+
+  return `<section class="${classes}" data-provider="pomodoro" data-state="${timer.state}" data-tauri-drag-region="deep" aria-label="Pomodoro timer widget">
+    <div class="disk"></div>
+    <svg class="gauge" viewBox="0 0 140 140" aria-hidden="true">${arcsSvg(timer.primary, null)}${ticksSvg()}</svg>
+    <div class="center">
+      <div class="num">${minutes}</div>
+      <div class="lbl">${label}</div>
+      <div class="lamp"><span class="lt"></span></div>
+    </div>
+  </section>`;
+}
+
 export function renderUsageDashboard(snapshots, options = {}) {
   const items = Array.isArray(snapshots) ? snapshots : [snapshots].filter(Boolean);
-  const widgets = items.map((snapshot) => renderUsageWidget(snapshot, options)).join('');
+  const widgets = items
+    .map((snapshot) => (
+      String(snapshot.provider).toLowerCase() === 'pomodoro'
+        ? renderPomodoroWidget(snapshot, options)
+        : renderUsageWidget(snapshot, options)
+    ))
+    .join('');
   return `<main class="dashboard" aria-label="Token usage dashboard">${widgets}</main>`;
 }

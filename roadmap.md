@@ -2,14 +2,14 @@
 
 ## Current Status
 - Current milestone: M3 — Three Widgets and Settings
-- Current task: Add Pomodoro widget
-- Last completed task: Verified Linux desktop real provider snapshot bridge after enabling the Tauri global API
-- Last command run: `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`, `npm test`, `npm run build`
-- Last test result: Passed — frontend Node tests, `npm run build`, Rust fmt check, Rust 52 lib tests, 4 smoke tests, 5 contract tests. User confirmed Linux X11 real provider values render in the Tauri widget.
+- Current task: Visually verify the three-widget Claude/Codex/Pomodoro dashboard, then continue Pomodoro controls/notifications
+- Last completed task: Added the first Pomodoro widget slice with frontend-local timer rendering
+- Last command run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Last test result: Passed — frontend Node tests, `npm run build`, Rust 52 lib tests, 4 smoke tests, 5 contract tests. User confirmed Linux X11 real provider values render in the Tauri widget before Pomodoro was added.
 - Next recommended command: `npm run build && npm test && cargo test --manifest-path src-tauri/Cargo.toml`
 - Blocking issue: None for M2. macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled before declaring cross-platform provider integration complete.
 - Git status note: `.codex/` remains local untracked tooling config and should not be committed. The screenshot reference file is local input and is not required for runtime.
-- Updated at: 2026-06-13 05:45 UTC
+- Updated at: 2026-06-13 05:55 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -32,6 +32,7 @@
 | 2026-06-13 | Expose frontend-safe provider DTO instead of internal `UsageSnapshot` | Real provider wiring must not expose raw provider errors, extras, endpoints, token paths, account IDs, or auth material to the webview | `src-tauri/src/dashboard.rs`, `src-tauri/src/main.rs` |
 | 2026-06-13 | Restrict token-bearing Codex usage endpoint to `/backend-api/wham/usage` | Real dashboard polling should send bearer tokens only to the confirmed usage endpoint, not arbitrary `chatgpt.com/backend-api/*` paths | `src-tauri/src/config.rs`, `src-tauri/src/providers/codex.rs`, `src-tauri/tests/m1_contract.rs` |
 | 2026-06-13 | Enable Tauri global API for the widget webview | The frontend uses `window.__TAURI__.core.invoke`; without `withGlobalTauri`, the app rendered browser fallback mock data instead of real provider snapshots | `src-tauri/tauri.conf.json`, `frontend/src/main.js` |
+| 2026-06-13 | Keep Pomodoro timer frontend-local in the first slice | SPEC separates Pomodoro from provider polling; the first widget can render and tick locally while Rust notification commands/settings persistence remain later M3 tasks | `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/src/styles.css` |
 
 ## Milestone Checklist
 
@@ -68,7 +69,7 @@
 - [x] Generalize usage widget renderer for Claude/Codex provider views
 - [x] Add Codex widget shell with mock snapshot
 - [x] Wire Claude/Codex widgets to real provider runtime
-- [ ] Add Pomodoro widget
+- [x] Add Pomodoro widget
 - [ ] Add settings window
 - [ ] Add config persistence
 - [ ] Add notification thresholds
@@ -354,6 +355,14 @@
 - Result: Replaced `mock_usage_snapshots` with `usage_snapshots`, added a dashboard runtime that reads CLI-owned Claude/Codex token sources, uses existing fixture-tested provider refresh paths with memory-only cache, degrades missing token sources to `NOT_LOGGED_IN`, and exposes only frontend-safe snapshot fields. Tightened Codex token-bearing endpoint allowlist to the confirmed `https://chatgpt.com/backend-api/wham/usage`.
 - Next step: Run Linux desktop visual check for the real provider bridge; expected result is two widgets populated from local providers or safe degraded states without exposing secrets. If visual check passes, continue M3 with Pomodoro widget/runtime.
 
+### 2026-06-13 05:55 UTC
+- Agent: main
+- Task: Add first Pomodoro widget slice
+- Files changed: `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `src-tauri/tauri.conf.json`, `index.html`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Added a third Pomodoro widget with frontend-local focus timer state, focus/break/paused rendering classes, Pomodoro color tokens, one-number minute display, no secondary ring, and a wider transparent widget window. Added DOM tests that verify Pomodoro still renders when Claude/Codex are stale/auth degraded.
+- Next step: Run Linux X11 visual check for the three-widget layout. Then add Pomodoro controls, phase switching, settings persistence, and notification command integration.
+
 ## Known Issues
 | Issue | Severity | Status | Next Action |
 |---|---|---|---|
@@ -364,6 +373,7 @@
 | Codex 20-poll smoke is complete | Low | Done | Recorded as WARN throughout; no 429 observed in the captured run |
 | macOS Keychain cannot be verified on current Ubuntu environment | Medium | Open | Implement macOS-gated source with `security` fallback and document manual verification |
 | Real provider bridge Linux visual check | Medium | Resolved | User confirmed the Tauri widget now renders real provider values after enabling `withGlobalTauri`; mock fallback no longer masks runtime invoke failures. |
+| Pomodoro visual verification | Medium | Open | Launch the Tauri app from an X11 desktop and verify the third Pomodoro widget appears to the right of Claude/Codex, uses focus color, shows remaining minutes, and preserves transparent/frameless/drag behavior. |
 | M2 Linux X11 visual verification | High | Resolved | User confirmed transparency, layout, tick visibility, frameless/always-on-top/skip-taskbar, drag, and hover update badge behavior on Linux X11. |
 | M2 visual tuning intentionally diverges from design-reference token literals | Medium | Resolved | Accepted screenshot-style block ticks, stronger bright-background tick contrast, disk radial mask, and disabled hover disk/glow effects as implementation decisions for Linux transparent WebKit. |
 

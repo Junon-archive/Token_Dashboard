@@ -3,9 +3,11 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import {
   formatResetCountdown,
+  formatRemainingMinutes,
   providerView,
   remainingFraction,
   renderClaudeWidget,
+  renderPomodoroWidget,
   renderUsageDashboard,
   renderUsageWidget,
   ticksSvg,
@@ -98,6 +100,57 @@ test('renders Claude and Codex widgets in a horizontal dashboard', async () => {
   assert.match(css, /\.dashboard\s*\{[^}]*gap: 20px;/s);
 });
 
+test('renders Pomodoro as a provider-isolated third widget', async () => {
+  const timer = {
+    provider: 'pomodoro',
+    state: 'FOCUS',
+    primary: {
+      used_pct: 10,
+      resets_at: '2026-06-12T00:20:00.000Z',
+    },
+    secondary: null,
+    fetched_at: '2026-06-12T00:00:00.000Z',
+    is_stale: false,
+  };
+  const html = renderUsageDashboard([
+    { ...snapshot('STALE', 34, 'claude'), primary: null, secondary: null },
+    { ...snapshot('AUTH_ERROR', 34, 'codex'), primary: null, secondary: null },
+    timer,
+  ], { now: NOW });
+  const css = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8');
+
+  assert.match(html, /class="widget claude stale"/);
+  assert.match(html, /class="widget codex autherr"/);
+  assert.match(html, /class="widget pomodoro focus"/);
+  assert.match(html, /data-provider="pomodoro"/);
+  assert.match(html, /data-state="FOCUS"/);
+  assert.match(html, /aria-label="Pomodoro timer widget"/);
+  assert.match(html, /<div class="num">20<\/div>/);
+  assert.match(html, /<div class="lbl">Focus<\/div>/);
+  assert.equal((html.match(/class="widget /g) ?? []).length, 3);
+  assert.equal((html.match(/class="arc-sec"/g) ?? []).length, 0);
+  assert.match(css, /--pomodoro-focus: #f0563d;/);
+  assert.match(css, /--pomodoro-break: #5fb98c;/);
+});
+
+test('renders Pomodoro break and paused states without critical pulse', async () => {
+  const base = {
+    provider: 'pomodoro',
+    primary: {
+      used_pct: 25,
+      resets_at: '2026-06-12T00:05:00.000Z',
+    },
+    secondary: null,
+    fetched_at: '2026-06-12T00:00:00.000Z',
+    is_stale: false,
+  };
+  const css = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8');
+
+  assert.match(renderPomodoroWidget({ ...base, state: 'BREAK' }, { now: NOW }), /class="widget pomodoro break"/);
+  assert.match(renderPomodoroWidget({ ...base, state: 'PAUSED' }, { now: NOW }), /class="widget pomodoro paused"/);
+  assert.doesNotMatch(css, /\.widget\.pomodoro[^}]*animation:/s);
+});
+
 test('renders provider-neutral state classes for Claude and Codex', () => {
   for (const provider of ['claude', 'codex']) {
     assert.match(renderUsageWidget(snapshot('CRITICAL', 100, provider), { now: NOW }), new RegExp(`widget ${provider} depleted`));
@@ -150,6 +203,12 @@ test('formats reset countdown as H:MM', () => {
   assert.equal(formatResetCountdown('not-a-date', NOW), '--:--');
 });
 
+test('formats Pomodoro remaining time as a single minute number', () => {
+  assert.equal(formatRemainingMinutes('2026-06-12T00:20:00.000Z', NOW), '20');
+  assert.equal(formatRemainingMinutes('2026-06-12T00:00:00.000Z', NOW), '0');
+  assert.equal(formatRemainingMinutes('not-a-date', NOW), '--');
+});
+
 test('critical pulse exists only on critical arc and reduced motion disables it', async () => {
   const css = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8');
 
@@ -189,8 +248,8 @@ test('Tauri widget window is wide enough for Claude and Codex gauges', async () 
   const window = config.app.windows.find((item) => item.label === 'claude-widget');
 
   assert.equal(config.app.withGlobalTauri, true);
-  assert.equal(window.width, 340);
-  assert.equal(window.minWidth, 340);
+  assert.equal(window.width, 500);
+  assert.equal(window.minWidth, 500);
   assert.equal(window.height, 180);
 });
 
