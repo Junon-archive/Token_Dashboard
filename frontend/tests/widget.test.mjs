@@ -234,6 +234,8 @@ test('runtime widget avoids hover visuals that persist in transparent windows', 
   assert.doesNotMatch(css, /\.widget:hover \.arc-main/);
   assert.match(js, /classList\.add\('is-hovered'\)/);
   assert.match(js, /classList\.remove\('is-hovered'\)/);
+  assert.match(js, /setInterval\(renderDashboard, 60000\)/);
+  assert.doesNotMatch(js, /setInterval\(renderDashboard, 1000\)/);
   assert.match(js, /addEventListener\('mouseleave', \(\) => clearHover\(widget\)\)/);
   assert.match(js, /startDragging/);
   assert.doesNotMatch(css, /transition: background/);

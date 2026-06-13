@@ -150,4 +150,4 @@ document.addEventListener('mouseout', (event) => {
 });
 
 renderDashboard();
-setInterval(renderDashboard, 1000);
+setInterval(renderDashboard, 60000);

@@ -2,14 +2,14 @@
 
 ## Current Status
 - Current milestone: M3 — Three Widgets and Settings
-- Current task: Visually verify the three-widget Claude/Codex/Pomodoro dashboard, then continue Pomodoro controls/notifications
-- Last completed task: Added the first Pomodoro widget slice with frontend-local timer rendering
-- Last command run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
-- Last test result: Passed — frontend Node tests, `npm run build`, Rust 52 lib tests, 4 smoke tests, 5 contract tests. User confirmed Linux X11 real provider values render in the Tauri widget before Pomodoro was added.
+- Current task: Continue Pomodoro controls/notifications after fixing transparent-window repaint artifacts
+- Last completed task: Verified three-widget layout and reduced Pomodoro repaint cadence to avoid transparent WebKit opacity accumulation
+- Last command run: `npm test`, `npm run build`, Claude local smoke, token-free `curl -I`/GET endpoint probes
+- Last test result: Passed — frontend Node tests and `npm run build`. User confirmed Claude/Codex/Pomodoro horizontal layout, Pomodoro focus display, and transparent/frameless/always-on-top/skip-taskbar/drag behavior before the repaint fix.
 - Next recommended command: `npm run build && npm test && cargo test --manifest-path src-tauri/Cargo.toml`
 - Blocking issue: None for M2. macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled before declaring cross-platform provider integration complete.
 - Git status note: `.codex/` remains local untracked tooling config and should not be committed. The screenshot reference file is local input and is not required for runtime.
-- Updated at: 2026-06-13 05:55 UTC
+- Updated at: 2026-06-13 06:05 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -33,6 +33,7 @@
 | 2026-06-13 | Restrict token-bearing Codex usage endpoint to `/backend-api/wham/usage` | Real dashboard polling should send bearer tokens only to the confirmed usage endpoint, not arbitrary `chatgpt.com/backend-api/*` paths | `src-tauri/src/config.rs`, `src-tauri/src/providers/codex.rs`, `src-tauri/tests/m1_contract.rs` |
 | 2026-06-13 | Enable Tauri global API for the widget webview | The frontend uses `window.__TAURI__.core.invoke`; without `withGlobalTauri`, the app rendered browser fallback mock data instead of real provider snapshots | `src-tauri/tauri.conf.json`, `frontend/src/main.js` |
 | 2026-06-13 | Keep Pomodoro timer frontend-local in the first slice | SPEC separates Pomodoro from provider polling; the first widget can render and tick locally while Rust notification commands/settings persistence remain later M3 tasks | `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/src/styles.css` |
+| 2026-06-13 | Avoid 1-second full DOM rerenders in transparent WebKit | Manual check showed repeated opacity accumulation/reset artifacts when the Pomodoro shell replaced the entire dashboard every second; minute-level redraw matches the displayed minute precision | `frontend/src/main.js`, `frontend/tests/widget.test.mjs` |
 
 ## Milestone Checklist
 
@@ -363,6 +364,14 @@
 - Result: Added a third Pomodoro widget with frontend-local focus timer state, focus/break/paused rendering classes, Pomodoro color tokens, one-number minute display, no secondary ring, and a wider transparent widget window. Added DOM tests that verify Pomodoro still renders when Claude/Codex are stale/auth degraded.
 - Next step: Run Linux X11 visual check for the three-widget layout. Then add Pomodoro controls, phase switching, settings persistence, and notification command integration.
 
+### 2026-06-13 06:05 UTC
+- Agent: main
+- Task: Address Pomodoro visual check feedback and diagnose Claude disconnected state
+- Files changed: `frontend/src/main.js`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `TOKEN_DASHBOARD_ALLOW_REAL_API=1 ./scripts/local-smoke.sh --provider claude`, token-free `curl -I` and GET probes to `https://api.anthropic.com/api/oauth/usage`
+- Result: User confirmed the three widgets, Pomodoro focus display, and window behavior. Reduced full dashboard rerender from 1s to 60s to avoid transparent WebKit opacity accumulation. Claude local smoke returned `STALE` with network failure; token-free endpoint probes reached Cloudflare but returned `429` with `retry-after` around one hour, so the current Claude disconnect is not caused by CLI auth file changes.
+- Next step: Re-run visual check for opacity stability after the 60s repaint change. Re-check Claude after the 429 retry window or add safer status reason DTO if the UI needs to distinguish RATE_LIMITED from generic stale.
+
 ## Known Issues
 | Issue | Severity | Status | Next Action |
 |---|---|---|---|
@@ -373,7 +382,8 @@
 | Codex 20-poll smoke is complete | Low | Done | Recorded as WARN throughout; no 429 observed in the captured run |
 | macOS Keychain cannot be verified on current Ubuntu environment | Medium | Open | Implement macOS-gated source with `security` fallback and document manual verification |
 | Real provider bridge Linux visual check | Medium | Resolved | User confirmed the Tauri widget now renders real provider values after enabling `withGlobalTauri`; mock fallback no longer masks runtime invoke failures. |
-| Pomodoro visual verification | Medium | Open | Launch the Tauri app from an X11 desktop and verify the third Pomodoro widget appears to the right of Claude/Codex, uses focus color, shows remaining minutes, and preserves transparent/frameless/drag behavior. |
+| Pomodoro visual verification | Medium | Partially resolved | User confirmed three-widget layout and window behavior; re-check opacity stability after reducing full dashboard rerender from 1s to 60s. |
+| Claude endpoint currently returns 429 at host edge | Medium | Open | Token-free probes to `api.anthropic.com/api/oauth/usage` returned Cloudflare `429 retry-after`; re-run Claude local smoke after retry window before changing auth logic. |
 | M2 Linux X11 visual verification | High | Resolved | User confirmed transparency, layout, tick visibility, frameless/always-on-top/skip-taskbar, drag, and hover update badge behavior on Linux X11. |
 | M2 visual tuning intentionally diverges from design-reference token literals | Medium | Resolved | Accepted screenshot-style block ticks, stronger bright-background tick contrast, disk radial mask, and disabled hover disk/glow effects as implementation decisions for Linux transparent WebKit. |
 
