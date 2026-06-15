@@ -333,3 +333,40 @@ svg.gauge {
   --arc-op: .42;
   filter: grayscale(.35);
 }
+
+.pomodoro-controls {
+  position: absolute;
+  left: 50%;
+  bottom: 13px;
+  display: none;
+  gap: 5px;
+  transform: translateX(-50%);
+  -webkit-app-region: no-drag;
+}
+
+.widget.pomodoro.is-hovered .pomodoro-controls,
+.widget.pomodoro:focus-within .pomodoro-controls {
+  display: flex;
+}
+
+.pomodoro-btn {
+  min-width: 28px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 7px;
+  background: rgba(20, 21, 26, .34);
+  color: rgba(244, 246, 250, .7);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.pomodoro-btn:focus-visible {
+  outline: 1px solid var(--arc);
+  outline-offset: 2px;
+}

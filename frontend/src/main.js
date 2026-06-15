@@ -1,16 +1,5 @@
 import { renderUsageDashboard } from './widget.js';
-
-const POMODORO_DEFAULTS = {
-  focusMin: 20,
-  breakMin: 5,
-  dialFullMin: 60,
-};
-
-const pomodoro = {
-  state: 'FOCUS',
-  startedAt: Date.now(),
-  durationMs: POMODORO_DEFAULTS.focusMin * 60000,
-};
+import { applyPomodoroAction, createPomodoroState, pomodoroSnapshot } from './pomodoro.js';
 
 const fallbackSnapshots = [{
   provider: 'claude',
@@ -56,22 +45,6 @@ function degradedSnapshots() {
   }));
 }
 
-function pomodoroSnapshot(now = new Date()) {
-  const elapsedMs = Math.max(0, now.getTime() - pomodoro.startedAt);
-  const usedPct = Math.min(100, (elapsedMs / (POMODORO_DEFAULTS.dialFullMin * 60000)) * 100);
-  return {
-    provider: 'pomodoro',
-    state: pomodoro.state,
-    primary: {
-      used_pct: usedPct,
-      resets_at: new Date(pomodoro.startedAt + pomodoro.durationMs).toISOString(),
-    },
-    secondary: null,
-    fetched_at: now.toISOString(),
-    is_stale: false,
-  };
-}
-
 async function loadSnapshots() {
   const invoke = window.__TAURI__?.core?.invoke;
   if (!invoke) {
@@ -86,10 +59,16 @@ async function loadSnapshots() {
 
 const root = document.querySelector('#app');
 let providerSnapshots = await loadSnapshots();
+let pomodoro = createPomodoroState();
 
 function renderDashboard() {
   root.innerHTML = renderUsageDashboard([...providerSnapshots, pomodoroSnapshot()]);
   bindWidgetInteractions();
+}
+
+function handlePomodoroAction(action) {
+  pomodoro = applyPomodoroAction(pomodoro, action);
+  renderDashboard();
 }
 
 function clearHover(widget) {
@@ -119,6 +98,9 @@ function bindWidgetInteractions() {
     widget.addEventListener(
       'mousedown',
       (event) => {
+        if (event.target.closest('[data-no-drag="true"]')) {
+          return;
+        }
         if (event.button !== 0 || event.detail !== 1) {
           return;
         }
@@ -129,6 +111,15 @@ function bindWidgetInteractions() {
     );
   }
 }
+
+root.addEventListener('click', (event) => {
+  const control = event.target.closest('[data-pomodoro-action]');
+  if (!control) {
+    return;
+  }
+  event.preventDefault();
+  handlePomodoroAction(control.dataset.pomodoroAction);
+});
 
 window.addEventListener('mousemove', (event) => {
   for (const widget of root.querySelectorAll('.widget')) {

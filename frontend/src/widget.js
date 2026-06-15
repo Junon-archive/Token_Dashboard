@@ -169,7 +169,10 @@ export function renderPomodoroWidget(timer, options = {}) {
   const now = options.now ?? new Date();
   const classes = ['widget', 'pomodoro', visualClassForSnapshot(timer)].filter(Boolean).join(' ');
   const label = timer.state === 'BREAK' ? 'Break' : timer.state === 'PAUSED' ? 'Paused' : 'Focus';
+  const actionLabel = timer.action_label ?? (timer.state === 'PAUSED' ? 'Resume' : 'Pause');
   const minutes = formatRemainingMinutes(timer.primary?.resets_at, now);
+
+  const skipLabel = timer.phase === 'BREAK' ? 'Start focus' : 'Start break';
 
   return `<section class="${classes}" data-provider="pomodoro" data-state="${timer.state}" data-tauri-drag-region="deep" aria-label="Pomodoro timer widget">
     <div class="disk"></div>
@@ -178,6 +181,11 @@ export function renderPomodoroWidget(timer, options = {}) {
       <div class="num">${minutes}</div>
       <div class="lbl">${label}</div>
       <div class="lamp"><span class="lt"></span></div>
+    </div>
+    <div class="pomodoro-controls" role="toolbar" aria-label="Pomodoro controls" data-no-drag="true">
+      <button class="pomodoro-btn reset" type="button" data-pomodoro-action="reset" aria-label="Reset timer">Reset</button>
+      <button class="pomodoro-btn toggle" type="button" data-pomodoro-action="toggle" aria-label="${actionLabel} timer">${actionLabel}</button>
+      <button class="pomodoro-btn skip" type="button" data-pomodoro-action="skip" aria-label="${skipLabel}">Skip</button>
     </div>
   </section>`;
 }

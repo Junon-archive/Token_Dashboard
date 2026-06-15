@@ -104,6 +104,8 @@ test('renders Pomodoro as a provider-isolated third widget', async () => {
   const timer = {
     provider: 'pomodoro',
     state: 'FOCUS',
+    phase: 'FOCUS',
+    action_label: 'Pause',
     primary: {
       used_pct: 10,
       resets_at: '2026-06-12T00:20:00.000Z',
@@ -127,6 +129,10 @@ test('renders Pomodoro as a provider-isolated third widget', async () => {
   assert.match(html, /aria-label="Pomodoro timer widget"/);
   assert.match(html, /<div class="num">20<\/div>/);
   assert.match(html, /<div class="lbl">Focus<\/div>/);
+  assert.match(html, /role="toolbar" aria-label="Pomodoro controls"/);
+  assert.match(html, /data-pomodoro-action="toggle"/);
+  assert.match(html, /data-pomodoro-action="reset"/);
+  assert.match(html, /data-pomodoro-action="skip"/);
   assert.equal((html.match(/class="widget /g) ?? []).length, 3);
   assert.equal((html.match(/class="arc-sec"/g) ?? []).length, 0);
   assert.match(css, /--pomodoro-focus: #f0563d;/);
@@ -146,8 +152,9 @@ test('renders Pomodoro break and paused states without critical pulse', async ()
   };
   const css = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8');
 
-  assert.match(renderPomodoroWidget({ ...base, state: 'BREAK' }, { now: NOW }), /class="widget pomodoro break"/);
-  assert.match(renderPomodoroWidget({ ...base, state: 'PAUSED' }, { now: NOW }), /class="widget pomodoro paused"/);
+  assert.match(renderPomodoroWidget({ ...base, state: 'BREAK', phase: 'BREAK' }, { now: NOW }), /aria-label="Start focus"/);
+  assert.match(renderPomodoroWidget({ ...base, state: 'PAUSED', phase: 'FOCUS', action_label: 'Resume' }, { now: NOW }), /class="widget pomodoro paused"/);
+  assert.match(renderPomodoroWidget({ ...base, state: 'PAUSED', phase: 'FOCUS', action_label: 'Resume' }, { now: NOW }), /aria-label="Resume timer"/);
   assert.doesNotMatch(css, /\.widget\.pomodoro[^}]*animation:/s);
 });
 
@@ -224,6 +231,7 @@ test('runtime widget avoids hover visuals that persist in transparent windows', 
   const js = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
 
   assert.match(js, /import \{ renderUsageDashboard \} from '\.\/widget\.js';/);
+  assert.match(js, /from '\.\/pomodoro\.js';/);
   assert.match(js, /usage_snapshots/);
   assert.doesNotMatch(js, /mock_usage_snapshots/);
   assert.match(js, /return fallbackSnapshots;/);
@@ -236,6 +244,7 @@ test('runtime widget avoids hover visuals that persist in transparent windows', 
   assert.match(js, /classList\.remove\('is-hovered'\)/);
   assert.match(js, /setInterval\(renderDashboard, 60000\)/);
   assert.doesNotMatch(js, /setInterval\(renderDashboard, 1000\)/);
+  assert.match(js, /closest\('\[data-no-drag="true"\]'\)/);
   assert.match(js, /addEventListener\('mouseleave', \(\) => clearHover\(widget\)\)/);
   assert.match(js, /startDragging/);
   assert.doesNotMatch(css, /transition: background/);
@@ -243,6 +252,18 @@ test('runtime widget avoids hover visuals that persist in transparent windows', 
   assert.doesNotMatch(css, /\.widget\.is-hovered \.num/);
   assert.doesNotMatch(css, /\.widget\.is-hovered [^{]+\{[^}]*box-shadow:/s);
   assert.doesNotMatch(css, /\.widget\.is-hovered [^{]+\{[^}]*drop-shadow/s);
+});
+
+test('Pomodoro controls are hover/focus only and excluded from window drag', async () => {
+  const css = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8');
+  const js = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
+
+  assert.match(css, /\.pomodoro-controls\s*\{[^}]*display: none;/s);
+  assert.match(css, /\.widget\.pomodoro\.is-hovered \.pomodoro-controls,/);
+  assert.match(css, /\.widget\.pomodoro:focus-within \.pomodoro-controls\s*\{\s*display: flex;/);
+  assert.match(css, /\.pomodoro-controls\s*\{[^}]*-webkit-app-region: no-drag;/s);
+  assert.match(css, /\.pomodoro-btn\s*\{[^}]*-webkit-app-region: no-drag;/s);
+  assert.match(js, /data-pomodoro-action/);
 });
 
 test('Tauri widget window is wide enough for Claude and Codex gauges', async () => {
