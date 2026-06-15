@@ -330,8 +330,21 @@ svg.gauge {
 }
 
 .widget.pomodoro.paused {
-  --arc-op: .42;
-  filter: grayscale(.35);
+  --arc-op: .3;
+  --tm: rgba(255, 255, 255, .08);
+  filter: grayscale(.55);
+}
+
+.widget.pomodoro.paused .disk {
+  opacity: .66;
+}
+
+.widget.pomodoro.paused .num {
+  opacity: .58;
+}
+
+.widget.pomodoro.paused .lbl {
+  color: rgba(244, 246, 250, .82);
 }
 
 .pomodoro-controls {
@@ -369,4 +382,9 @@ svg.gauge {
 .pomodoro-btn:focus-visible {
   outline: 1px solid var(--arc);
   outline-offset: 2px;
+}
+
+.widget.pomodoro.paused .pomodoro-btn.toggle {
+  border-color: rgba(240, 86, 61, .34);
+  color: var(--pomodoro-focus-bright);
 }

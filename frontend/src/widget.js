@@ -67,10 +67,11 @@ export function visualClassForSnapshot(snapshot) {
   }
 }
 
-export function ticksSvg() {
+export function ticksSvg(options = {}) {
+  const majorEvery = options.majorEvery ?? 6;
   let output = '';
   for (let i = 0; i < TICK_N; i += 1) {
-    const isMajor = i % 6 === 0;
+    const isMajor = i % majorEvery === 0;
     const width = isMajor ? TICK_MAJOR_W : TICK_MINOR_W;
     const height = isMajor ? TICK_MAJOR_H : TICK_MINOR_H;
     const x = CX - width / 2;
@@ -176,7 +177,7 @@ export function renderPomodoroWidget(timer, options = {}) {
 
   return `<section class="${classes}" data-provider="pomodoro" data-state="${timer.state}" data-tauri-drag-region="deep" aria-label="Pomodoro timer widget">
     <div class="disk"></div>
-    <svg class="gauge" viewBox="0 0 140 140" aria-hidden="true">${arcsSvg(timer.primary, null)}${ticksSvg()}</svg>
+    <svg class="gauge" viewBox="0 0 140 140" aria-hidden="true">${arcsSvg(timer.primary, null)}${ticksSvg({ majorEvery: 4 })}</svg>
     <div class="center">
       <div class="num">${minutes}</div>
       <div class="lbl">${label}</div>

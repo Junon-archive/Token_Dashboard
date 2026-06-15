@@ -266,7 +266,11 @@ test('Pomodoro controls are hover/focus only and excluded from window drag', asy
   assert.match(css, /\.widget\.pomodoro:focus-within \.pomodoro-controls\s*\{\s*display: flex;/);
   assert.match(css, /\.pomodoro-controls\s*\{[^}]*-webkit-app-region: no-drag;/s);
   assert.match(css, /\.pomodoro-btn\s*\{[^}]*-webkit-app-region: no-drag;/s);
+  assert.match(css, /\.widget\.pomodoro\.paused \.num\s*\{[^}]*opacity: \.58;/s);
+  assert.match(css, /\.widget\.pomodoro\.paused \.pomodoro-btn\.toggle\s*\{/);
   assert.match(js, /data-pomodoro-action/);
+  assert.match(js, /renderPomodoroOnly/);
+  assert.match(js, /function handlePomodoroAction\(action\)\s*\{\s*pomodoro = applyPomodoroAction\(pomodoro, action\);\s*renderPomodoroOnly\(\);\s*\}/);
 });
 
 test('Tauri widget window is wide enough for Claude and Codex gauges', async () => {
@@ -293,6 +297,15 @@ test('generates forty-eight block-style gauge ticks', () => {
   assert.equal((ticks.match(/class="tick tick-major"/g) ?? []).length, 8);
   assert.match(ticks, /rx="0\.70"/);
   assert.match(ticks, /transform="rotate\(45\.00 70 70\)"/);
+});
+
+test('Pomodoro uses twelve major tick marks without changing provider ticks', () => {
+  const providerTicks = ticksSvg();
+  const pomodoroTicks = ticksSvg({ majorEvery: 4 });
+
+  assert.equal((providerTicks.match(/class="tick tick-major"/g) ?? []).length, 8);
+  assert.equal((pomodoroTicks.match(/class="tick tick-major"/g) ?? []).length, 12);
+  assert.match(pomodoroTicks, /transform="rotate\(30\.00 70 70\)"/);
 });
 
 test('tick marks use subtle block fills instead of thin strokes', async () => {

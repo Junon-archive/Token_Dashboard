@@ -67,9 +67,23 @@ function renderDashboard() {
   bindWidgetInteractions();
 }
 
+function renderPomodoroOnly() {
+  pomodoro = tickPomodoro(pomodoro);
+  const current = root.querySelector('[data-provider="pomodoro"]');
+  if (!current) {
+    renderDashboard();
+    return;
+  }
+  const template = document.createElement('template');
+  template.innerHTML = renderUsageDashboard([pomodoroSnapshot(pomodoro)]);
+  const next = template.content.querySelector('[data-provider="pomodoro"]');
+  current.replaceWith(next);
+  bindWidgetInteractions(next);
+}
+
 function handlePomodoroAction(action) {
   pomodoro = applyPomodoroAction(pomodoro, action);
-  renderDashboard();
+  renderPomodoroOnly();
 }
 
 function clearHover(widget) {
@@ -89,8 +103,9 @@ function syncHover(widget, event) {
   widget.classList.toggle('is-hovered', isInside);
 }
 
-function bindWidgetInteractions() {
-  for (const widget of root.querySelectorAll('.widget')) {
+function bindWidgetInteractions(scope = root) {
+  const widgets = scope.matches?.('.widget') ? [scope] : scope.querySelectorAll('.widget');
+  for (const widget of widgets) {
     widget.addEventListener('mouseenter', () => widget.classList.add('is-hovered'));
     widget.addEventListener('mouseleave', () => clearHover(widget));
     widget.addEventListener('pointerenter', () => widget.classList.add('is-hovered'));

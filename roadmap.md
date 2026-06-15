@@ -2,14 +2,14 @@
 
 ## Current Status
 - Current milestone: M3 — Three Widgets and Settings
-- Current task: Visually verify Pomodoro controls, then start config persistence for settings
-- Last completed task: Added frontend-local Pomodoro controls and phase switching
+- Current task: Re-verify Pomodoro controls after visual polish, then start config persistence for settings
+- Last completed task: Fixed Pomodoro control repaint overlap, paused-state visibility, and Pomodoro-only major tick count
 - Last command run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
 - Last test result: Passed — frontend Pomodoro/widget tests, `npm run build`, Rust 52 lib tests, 4 smoke tests, 5 contract tests. User confirmed Claude works after re-authentication.
 - Next recommended command: `npm run build && npm test && cargo test --manifest-path src-tauri/Cargo.toml`
 - Blocking issue: None for M2. macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled before declaring cross-platform provider integration complete.
 - Git status note: `.codex/` remains local untracked tooling config and should not be committed. The screenshot reference file is local input and is not required for runtime.
-- Updated at: 2026-06-15 09:45 UTC
+- Updated at: 2026-06-15 10:00 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -37,6 +37,7 @@
 | 2026-06-15 | Treat Claude refresh `400 invalid_grant` as `AUTH_ERROR` | Current local Claude credential has an expired/invalid access token and a refresh token rejected by Claude's OAuth endpoint; UI should show an auth problem rather than generic stale/network | `src-tauri/src/refresh.rs` |
 | 2026-06-15 | Codex WARN/yellow can be caused by the secondary 7-day window | Codex smoke showed primary 5-hour usage at 9% but secondary 7-day usage at 80%; the state machine uses the max of primary/secondary usage, so WARN is expected | `src-tauri/src/providers/codex.rs`, `src-tauri/src/state.rs` |
 | 2026-06-15 | Keep Pomodoro controls frontend-local and hover-only | This preserves Pomodoro isolation, avoids settings/notification scope creep, and keeps the transparent widget mostly draggable while exposing controls only when needed | `frontend/src/pomodoro.js`, `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/src/styles.css` |
+| 2026-06-15 | Use 12 major ticks only for Pomodoro | Pomodoro benefits from clock-like 5-minute divisions; Claude/Codex retain the accepted 8 major usage ticks | `frontend/src/widget.js`, `frontend/tests/widget.test.mjs` |
 
 ## Milestone Checklist
 
@@ -391,6 +392,14 @@
 - Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
 - Result: Extracted Pomodoro state machine into a provider/network-independent module; added pause/resume, reset, skip, focus/break auto-rollover, and hover/focus-only controls that opt out of window drag. Added CI-safe tests for pause/resume/reset/skip/rollover and Pomodoro isolation from Tauri/provider APIs.
 - Next step: Run Linux X11 visual check for Pomodoro controls, focusing on hover-only toolbar visibility, button clicks not starting window drag, reset/skip/toggle behavior, and no transparent-window repaint artifacts. Then start config persistence for Pomodoro durations and widget settings.
+
+### 2026-06-15 10:00 UTC
+- Agent: main
+- Task: Address Pomodoro control visual feedback
+- Files changed: `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Pomodoro button actions now replace only the Pomodoro widget instead of redrawing the full dashboard, reducing transparent WebKit overlap artifacts. Paused state is visually stronger through dimmed ring/text and highlighted resume button. Pomodoro alone uses 12 major tick marks while Claude/Codex keep 8.
+- Next step: Run Linux X11 visual check for Pomodoro button actions, paused-state readability, and Pomodoro-only 12 major ticks.
 
 ## Known Issues
 | Issue | Severity | Status | Next Action |
