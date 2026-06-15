@@ -243,7 +243,7 @@ pub fn apply_memory_only_refresh_success(
 
 pub fn provider_error_for_refresh_failure(status: Option<u16>) -> ProviderError {
     match status {
-        Some(401 | 403) => ProviderError::AuthError,
+        Some(400 | 401 | 403) => ProviderError::AuthError,
         Some(429) => ProviderError::RateLimited,
         _ => ProviderError::Network,
     }
@@ -325,6 +325,10 @@ mod tests {
 
     #[test]
     fn refresh_failure_status_maps_to_provider_state_errors() {
+        assert!(matches!(
+            provider_error_for_refresh_failure(Some(400)),
+            ProviderError::AuthError
+        ));
         assert!(matches!(
             provider_error_for_refresh_failure(Some(401)),
             ProviderError::AuthError
