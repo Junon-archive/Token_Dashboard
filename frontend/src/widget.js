@@ -196,9 +196,9 @@ export function renderPomodoroWidget(timer, options = {}) {
       })}
     </div>
     <div class="pomodoro-controls" role="toolbar" aria-label="Pomodoro controls" data-no-drag="true">
-      <button class="pomodoro-btn reset" type="button" data-pomodoro-action="reset" aria-label="Reset timer">Reset</button>
-      <button class="pomodoro-btn toggle" type="button" data-pomodoro-action="toggle" aria-label="${actionLabel} timer">Toggle</button>
-      <button class="pomodoro-btn skip" type="button" data-pomodoro-action="skip" aria-label="${skipLabel}">Skip</button>
+      <button class="pomodoro-btn reset" type="button" data-no-drag="true" data-pomodoro-action="reset" aria-label="Reset timer">Reset</button>
+      <button class="pomodoro-btn toggle" type="button" data-no-drag="true" data-pomodoro-action="toggle" aria-label="${actionLabel} timer">Toggle</button>
+      <button class="pomodoro-btn skip" type="button" data-no-drag="true" data-pomodoro-action="skip" aria-label="${skipLabel}">Skip</button>
     </div>
   </section>`;
 }

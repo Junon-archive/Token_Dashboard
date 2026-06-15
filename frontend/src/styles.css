@@ -104,7 +104,6 @@ body {
   position: absolute;
   inset: 0;
   clip-path: circle(50%);
-  will-change: contents;
 }
 
 svg.gauge-arc {
@@ -204,7 +203,6 @@ svg.gauge-arc {
   justify-content: center;
   gap: 3px;
   pointer-events: none;
-  will-change: contents;
 }
 
 .gauge-label .name {

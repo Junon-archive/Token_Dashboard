@@ -154,6 +154,8 @@ function updateProviderWidget(snapshot, now = new Date()) {
   if (ref.number) {
     ref.number.textContent = formatResetCountdown(snapshot.primary?.resets_at, now);
   }
+  /* [REFACTOR] Force a layout flush after text/arc mutation so stale transparent WebKit damage is cleared immediately. */
+  void ref.widget.offsetHeight;
 }
 
 function updatePomodoroWidget(now = new Date()) {
@@ -178,6 +180,8 @@ function updatePomodoroWidget(now = new Date()) {
   if (ref.skip) {
     ref.skip.setAttribute('aria-label', snapshot.phase === 'BREAK' ? 'Start focus' : 'Start break');
   }
+  /* [REFACTOR] Force a layout flush after text/arc mutation so stale transparent WebKit damage is cleared immediately. */
+  void ref.widget.offsetHeight;
 }
 
 function renderInitialDashboard() {
@@ -319,6 +323,16 @@ function bindWidgetInteractions(scope = root) {
       },
       { capture: true },
     );
+
+    if (widget.classList.contains('pomodoro')) {
+      for (const button of widget.querySelectorAll('.pomodoro-btn')) {
+        button.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          handlePomodoroAction(button.dataset.pomodoroAction);
+        });
+      }
+    }
   }
 }
 
@@ -329,13 +343,6 @@ root.addEventListener('click', (event) => {
     beginPomodoroMinuteEdit(edit);
     return;
   }
-
-  const control = event.target.closest('[data-pomodoro-action]');
-  if (!control) {
-    return;
-  }
-  event.preventDefault();
-  handlePomodoroAction(control.dataset.pomodoroAction);
 });
 
 root.addEventListener('keydown', (event) => {

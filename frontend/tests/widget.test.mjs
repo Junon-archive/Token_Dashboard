@@ -256,12 +256,14 @@ test('runtime widget avoids hover visuals that persist in transparent windows', 
   assert.match(js, /function updatePomodoroWidget\(now = new Date\(\)\)/);
   assert.match(js, /ref\.number\.textContent = formatRemainingMinutes/);
   assert.match(js, /setArcProgress\(ref\.arcMain, snapshot\.primary\?\.used_pct\)/);
+  assert.match(js, /void ref\.widget\.offsetHeight;/);
   assert.match(js, /closest\('\[data-no-drag="true"\]'\)/);
   assert.match(js, /addEventListener\('mouseleave', \(\) => clearHover\(widget\)\)/);
   assert.doesNotMatch(js, /active\.blur\(\)/);
   assert.match(js, /addEventListener\('pointermove'/);
   assert.match(js, /syncHover\(widget, event\)/);
   assert.match(js, /createPomodoroMinuteSpan/);
+  assert.match(js, /button\.addEventListener\('click', \(event\) => \{/);
   assert.match(js, /startDragging/);
   assert.doesNotMatch(css, /transition: background/);
   assert.doesNotMatch(css, /\.widget\.is-hovered \.disk/);
@@ -291,6 +293,7 @@ test('Pomodoro controls sit below the gauge and are excluded from window drag', 
   assert.match(js, /createPomodoroMinuteSpan/);
   assert.match(js, /input\.replaceWith\(next\)/);
   assert.match(js, /setPomodoroMinutes\(pomodoro, input\.value\)/);
+  assert.match(js, /button\.addEventListener\('click', \(event\) => \{/);
   assert.doesNotMatch(js, /renderPomodoroOnly/);
   assert.match(js, /function handlePomodoroAction\(action\)\s*\{\s*pomodoro = applyPomodoroAction\(pomodoro, action\);\s*updatePomodoroWidget\(\);\s*\}/);
 });
@@ -302,9 +305,7 @@ test('timer digits avoid rectangular paint plates in the transparent window', as
   assert.doesNotMatch(css, /backdrop-filter:/);
   assert.doesNotMatch(css, /mask-image:/);
   assert.match(css, /\.gauge-wrapper\s*\{[^}]*clip-path: circle\(50%\);/s);
-  assert.match(css, /\.gauge-wrapper\s*\{[^}]*will-change: contents;/s);
   assert.match(css, /svg\.gauge-arc\s*\{[^}]*will-change: transform;/s);
-  assert.match(css, /\.gauge-label\s*\{[^}]*will-change: contents;/s);
   assert.doesNotMatch(css, /\.num\s*\{[^}]*border-radius:/s);
 });
 
