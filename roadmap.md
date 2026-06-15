@@ -2,14 +2,14 @@
 
 ## Current Status
 - Current milestone: M3 — Three Widgets and Settings
-- Current task: Continue Pomodoro controls/notifications after fixing transparent-window repaint artifacts
-- Last completed task: Verified three-widget layout and reduced Pomodoro repaint cadence to avoid transparent WebKit opacity accumulation
-- Last command run: `npm test`, `npm run build`, Claude local smoke, token-free `curl -I`/GET endpoint probes
-- Last test result: Passed — frontend Node tests and `npm run build`. User confirmed Claude/Codex/Pomodoro horizontal layout, Pomodoro focus display, and transparent/frameless/always-on-top/skip-taskbar/drag behavior before the repaint fix.
+- Current task: Continue Pomodoro controls/notifications after Claude re-auth guidance
+- Last completed task: Diagnosed current Claude missing usage as expired/invalid local Claude credential refresh state, not a Token Dashboard token-file write issue
+- Last command run: `cargo test --manifest-path src-tauri/Cargo.toml`, `TOKEN_DASHBOARD_ALLOW_REAL_API=1 ./scripts/local-smoke.sh --provider claude`, `TOKEN_DASHBOARD_ALLOW_REAL_API=1 ./scripts/local-smoke.sh --provider codex`, token-free and token-status endpoint probes
+- Last test result: Passed — Rust 52 lib tests, 4 smoke tests, 5 contract tests. Claude smoke now maps refresh `invalid_grant` to `AUTH_ERROR`; Codex smoke returns `WARN` because the 7-day window is at 80%.
 - Next recommended command: `npm run build && npm test && cargo test --manifest-path src-tauri/Cargo.toml`
 - Blocking issue: None for M2. macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled before declaring cross-platform provider integration complete.
 - Git status note: `.codex/` remains local untracked tooling config and should not be committed. The screenshot reference file is local input and is not required for runtime.
-- Updated at: 2026-06-13 06:05 UTC
+- Updated at: 2026-06-15 09:35 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -34,6 +34,8 @@
 | 2026-06-13 | Enable Tauri global API for the widget webview | The frontend uses `window.__TAURI__.core.invoke`; without `withGlobalTauri`, the app rendered browser fallback mock data instead of real provider snapshots | `src-tauri/tauri.conf.json`, `frontend/src/main.js` |
 | 2026-06-13 | Keep Pomodoro timer frontend-local in the first slice | SPEC separates Pomodoro from provider polling; the first widget can render and tick locally while Rust notification commands/settings persistence remain later M3 tasks | `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/src/styles.css` |
 | 2026-06-13 | Avoid 1-second full DOM rerenders in transparent WebKit | Manual check showed repeated opacity accumulation/reset artifacts when the Pomodoro shell replaced the entire dashboard every second; minute-level redraw matches the displayed minute precision | `frontend/src/main.js`, `frontend/tests/widget.test.mjs` |
+| 2026-06-15 | Treat Claude refresh `400 invalid_grant` as `AUTH_ERROR` | Current local Claude credential has an expired/invalid access token and a refresh token rejected by Claude's OAuth endpoint; UI should show an auth problem rather than generic stale/network | `src-tauri/src/refresh.rs` |
+| 2026-06-15 | Codex WARN/yellow can be caused by the secondary 7-day window | Codex smoke showed primary 5-hour usage at 9% but secondary 7-day usage at 80%; the state machine uses the max of primary/secondary usage, so WARN is expected | `src-tauri/src/providers/codex.rs`, `src-tauri/src/state.rs` |
 
 ## Milestone Checklist
 
@@ -372,6 +374,14 @@
 - Result: User confirmed the three widgets, Pomodoro focus display, and window behavior. Reduced full dashboard rerender from 1s to 60s to avoid transparent WebKit opacity accumulation. Claude local smoke returned `STALE` with network failure; token-free endpoint probes reached Cloudflare but returned `429` with `retry-after` around one hour, so the current Claude disconnect is not caused by CLI auth file changes.
 - Next step: Re-run visual check for opacity stability after the 60s repaint change. Re-check Claude after the 429 retry window or add safer status reason DTO if the UI needs to distinguish RATE_LIMITED from generic stale.
 
+### 2026-06-15 09:35 UTC
+- Agent: main
+- Task: Diagnose persistent Claude usage absence and Codex yellow/WARN color
+- Files changed: `src-tauri/src/refresh.rs`, `roadmap.md`
+- Commands run: `TOKEN_DASHBOARD_ALLOW_REAL_API=1 ./scripts/local-smoke.sh --provider claude`, sanitized file existence/schema checks for `~/.claude/.credentials.json`, token-free endpoint probe to `https://api.anthropic.com/api/oauth/usage`, token-status-only Claude usage and refresh probes, `cargo test --manifest-path src-tauri/Cargo.toml`, `TOKEN_DASHBOARD_ALLOW_REAL_API=1 ./scripts/local-smoke.sh --provider codex`
+- Result: Claude credential file exists with mode `600` and expected access/refresh fields. Token-status-only probes showed usage access token returns `401`, refresh returns `400 invalid_grant`; this means the saved Claude session must be re-authenticated and should not require recurring login once a valid refresh token is restored. Updated refresh failure mapping so `400 invalid_grant` becomes `AUTH_ERROR`. Codex smoke returned `WARN` with primary 9% and secondary 80%, so the yellow color is expected.
+- Next step: User should run `claude auth logout` then `claude auth login --claudeai` or the appropriate `--console`/`--sso` variant, then run local Claude smoke again. Continue M3 with Pomodoro controls, phase switching, settings persistence, and notification command integration after auth is restored or accepted as an external account state.
+
 ## Known Issues
 | Issue | Severity | Status | Next Action |
 |---|---|---|---|
@@ -383,7 +393,8 @@
 | macOS Keychain cannot be verified on current Ubuntu environment | Medium | Open | Implement macOS-gated source with `security` fallback and document manual verification |
 | Real provider bridge Linux visual check | Medium | Resolved | User confirmed the Tauri widget now renders real provider values after enabling `withGlobalTauri`; mock fallback no longer masks runtime invoke failures. |
 | Pomodoro visual verification | Medium | Partially resolved | User confirmed three-widget layout and window behavior; re-check opacity stability after reducing full dashboard rerender from 1s to 60s. |
-| Claude endpoint currently returns 429 at host edge | Medium | Open | Token-free probes to `api.anthropic.com/api/oauth/usage` returned Cloudflare `429 retry-after`; re-run Claude local smoke after retry window before changing auth logic. |
+| Claude local credential refresh is invalid | Medium | Open | Current saved Claude access token returns `401` and refresh returns `400 invalid_grant`; re-authenticate with `claude auth logout` then `claude auth login --claudeai` or the correct account mode, then rerun local smoke. |
+| Codex widget is yellow/WARN | Low | Expected | Codex primary 5-hour usage is low, but secondary 7-day usage is 80%; state machine uses the maximum usage window, so WARN/yellow is correct. |
 | M2 Linux X11 visual verification | High | Resolved | User confirmed transparency, layout, tick visibility, frameless/always-on-top/skip-taskbar, drag, and hover update badge behavior on Linux X11. |
 | M2 visual tuning intentionally diverges from design-reference token literals | Medium | Resolved | Accepted screenshot-style block ticks, stronger bright-background tick contrast, disk radial mask, and disabled hover disk/glow effects as implementation decisions for Linux transparent WebKit. |
 
