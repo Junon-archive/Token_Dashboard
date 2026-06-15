@@ -77,6 +77,30 @@ export function applyPomodoroAction(state, action, now = new Date()) {
   return current;
 }
 
+export function setPomodoroMinutes(state, minutes, now = new Date()) {
+  const parsed = Number(minutes);
+  if (!Number.isFinite(parsed)) {
+    return tickPomodoro(state, now);
+  }
+  const clamped = Math.max(1, Math.min(180, Math.round(parsed)));
+  const current = tickPomodoro(state, now);
+  const settingsKey = current.phase === 'BREAK' ? 'breakMin' : 'focusMin';
+  const settings = {
+    ...current.settings,
+    [settingsKey]: clamped,
+  };
+  const durationMs = clamped * 60000;
+
+  return {
+    ...current,
+    settings,
+    isRunning: false,
+    startedAt: nowMs(now),
+    durationMs,
+    remainingMs: durationMs,
+  };
+}
+
 export function pomodoroSnapshot(state, now = new Date()) {
   const current = tickPomodoro(state, now);
   const elapsedMs = current.isRunning

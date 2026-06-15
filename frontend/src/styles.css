@@ -169,6 +169,16 @@ svg.gauge {
 }
 
 .num {
+  min-width: 66px;
+  min-height: 35px;
+  display: grid;
+  place-items: center;
+  contain: paint;
+  isolation: isolate;
+  padding: 0 5px 2px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(13, 14, 18, .28);
   font-size: 30px;
   font-weight: 560;
   letter-spacing: -1px;
@@ -176,6 +186,7 @@ svg.gauge {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
   text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+  line-height: 1;
   transition: opacity var(--t-state) var(--ease);
 }
 
@@ -347,6 +358,44 @@ svg.gauge {
   color: rgba(244, 246, 250, .82);
 }
 
+.widget.pomodoro .center {
+  pointer-events: auto;
+}
+
+.widget.pomodoro .lbl,
+.widget.pomodoro .lamp {
+  pointer-events: none;
+}
+
+.widget.pomodoro .num {
+  min-width: 48px;
+}
+
+.pomodoro-time,
+.pomodoro-minute-input {
+  appearance: none;
+  font-family: inherit;
+  cursor: text;
+  -webkit-app-region: no-drag;
+}
+
+.pomodoro-time:focus-visible,
+.pomodoro-minute-input:focus-visible {
+  outline: 1px solid var(--arc);
+  outline-offset: 2px;
+}
+
+.pomodoro-minute-input {
+  width: 58px;
+  text-align: center;
+}
+
+.pomodoro-minute-input::-webkit-outer-spin-button,
+.pomodoro-minute-input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
 .pomodoro-controls {
   position: absolute;
   left: 50%;
@@ -357,8 +406,7 @@ svg.gauge {
   -webkit-app-region: no-drag;
 }
 
-.widget.pomodoro.is-hovered .pomodoro-controls,
-.widget.pomodoro:focus-within .pomodoro-controls {
+.widget.pomodoro.is-hovered .pomodoro-controls {
   display: flex;
 }
 

@@ -2,14 +2,14 @@
 
 ## Current Status
 - Current milestone: M3 — Three Widgets and Settings
-- Current task: Re-verify Pomodoro controls after visual polish, then start config persistence for settings
-- Last completed task: Fixed Pomodoro control repaint overlap, paused-state visibility, and Pomodoro-only major tick count
+- Current task: Manual visual verification for Pomodoro repaint and minute editing, then start config persistence for settings
+- Last completed task: Reduced transparent-window repaint artifacts, made Pomodoro controls hide on hover leave, and added center-minute editing
 - Last command run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
 - Last test result: Passed — frontend Pomodoro/widget tests, `npm run build`, Rust 52 lib tests, 4 smoke tests, 5 contract tests. User confirmed Claude works after re-authentication.
 - Next recommended command: `npm run build && npm test && cargo test --manifest-path src-tauri/Cargo.toml`
 - Blocking issue: None for M2. macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled before declaring cross-platform provider integration complete.
 - Git status note: `.codex/` remains local untracked tooling config and should not be committed. The screenshot reference file is local input and is not required for runtime.
-- Updated at: 2026-06-15 10:00 UTC
+- Updated at: 2026-06-15 10:25 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -38,6 +38,8 @@
 | 2026-06-15 | Codex WARN/yellow can be caused by the secondary 7-day window | Codex smoke showed primary 5-hour usage at 9% but secondary 7-day usage at 80%; the state machine uses the max of primary/secondary usage, so WARN is expected | `src-tauri/src/providers/codex.rs`, `src-tauri/src/state.rs` |
 | 2026-06-15 | Keep Pomodoro controls frontend-local and hover-only | This preserves Pomodoro isolation, avoids settings/notification scope creep, and keeps the transparent widget mostly draggable while exposing controls only when needed | `frontend/src/pomodoro.js`, `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/src/styles.css` |
 | 2026-06-15 | Use 12 major ticks only for Pomodoro | Pomodoro benefits from clock-like 5-minute divisions; Claude/Codex retain the accepted 8 major usage ticks | `frontend/src/widget.js`, `frontend/tests/widget.test.mjs` |
+| 2026-06-15 | Avoid full-dashboard timer redraws in the transparent window | Linux transparent WebKit can leave stale glyph/control paint when DOM subtrees are replaced; timer updates now mutate text/classes/arc attributes in place and use a small numeric paint plate | `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
+| 2026-06-15 | Keep Pomodoro minute editing frontend-local for now | Center-click minute setting is useful before persistent settings; the value changes the current phase only, clamps to 1-180 minutes, and resets that phase paused until config persistence is added | `frontend/src/pomodoro.js`, `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/tests/pomodoro.test.mjs` |
 
 ## Milestone Checklist
 
@@ -76,6 +78,7 @@
 - [x] Wire Claude/Codex widgets to real provider runtime
 - [x] Add Pomodoro widget
 - [x] Add Pomodoro controls and phase switching
+- [x] Add Pomodoro center-minute editing
 - [ ] Add settings window
 - [ ] Add config persistence
 - [ ] Add notification thresholds

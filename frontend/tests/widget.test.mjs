@@ -53,7 +53,7 @@ test('renders Claude widget DOM with expected gauge structure', () => {
   assert.match(html, /data-provider="claude"/);
   assert.match(html, /data-state="NORMAL"/);
   assert.match(html, /data-tauri-drag-region="deep"/);
-  assert.match(html, /<div class="num">3:17<\/div>/);
+  assert.match(html, /<div class="num" data-countdown-provider="claude">3:17<\/div>/);
   assert.match(html, /<div class="lbl">Claude<\/div>/);
   assert.match(html, /<div class="update-badge">/);
   assert.match(html, /12m ago/);
@@ -127,7 +127,7 @@ test('renders Pomodoro as a provider-isolated third widget', async () => {
   assert.match(html, /data-provider="pomodoro"/);
   assert.match(html, /data-state="FOCUS"/);
   assert.match(html, /aria-label="Pomodoro timer widget"/);
-  assert.match(html, /<div class="num">20<\/div>/);
+  assert.match(html, /<button class="num pomodoro-time" type="button" data-no-drag="true" data-pomodoro-edit="minutes" aria-label="Set Pomodoro minutes">20<\/button>/);
   assert.match(html, /<div class="lbl">Focus<\/div>/);
   assert.match(html, /role="toolbar" aria-label="Pomodoro controls"/);
   assert.match(html, /data-pomodoro-action="toggle"/);
@@ -172,7 +172,7 @@ test('handles incomplete provider snapshots without crashing', () => {
   assert.equal((noSecondary.match(/class="arc-sec"/g) ?? []).length, 0);
 
   const missingPrimary = renderUsageWidget({ ...snapshot('NORMAL', 34, 'codex'), primary: null }, { now: NOW });
-  assert.match(missingPrimary, /<div class="num">--:--<\/div>/);
+  assert.match(missingPrimary, /<div class="num" data-countdown-provider="codex">--:--<\/div>/);
 
   const badFetchedAt = renderUsageWidget({ ...snapshot('STALE', 34, 'codex'), fetched_at: 'not-a-date' }, { now: NOW });
   assert.match(badFetchedAt, />stale<\/span>/);
@@ -186,7 +186,7 @@ test('renders stale and auth states without dropping last values', () => {
   const staleHtml = renderClaudeWidget(snapshot('STALE', 42), { now: NOW });
   assert.match(staleHtml, /class="widget claude stale"/);
   assert.match(staleHtml, /12m ago/);
-  assert.match(staleHtml, /<div class="num">3:17<\/div>/);
+  assert.match(staleHtml, /<div class="num" data-countdown-provider="claude">3:17<\/div>/);
 
   const signInHtml = renderClaudeWidget(snapshot('NOT_LOGGED_IN'), { now: NOW });
   assert.match(signInHtml, /class="widget claude notin"/);
@@ -230,7 +230,7 @@ test('runtime widget avoids hover visuals that persist in transparent windows', 
   const css = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8');
   const js = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
 
-  assert.match(js, /import \{ renderUsageDashboard \} from '\.\/widget\.js';/);
+  assert.match(js, /import \{ formatRemainingMinutes, formatResetCountdown, renderUsageDashboard \} from '\.\/widget\.js';/);
   assert.match(js, /from '\.\/pomodoro\.js';/);
   assert.match(js, /tickPomodoro/);
   assert.match(js, /pomodoroSnapshot\(pomodoro\)/);
@@ -245,10 +245,14 @@ test('runtime widget avoids hover visuals that persist in transparent windows', 
   assert.doesNotMatch(css, /\.widget:hover \.arc-main/);
   assert.match(js, /classList\.add\('is-hovered'\)/);
   assert.match(js, /classList\.remove\('is-hovered'\)/);
-  assert.match(js, /setInterval\(renderDashboard, 60000\)/);
+  assert.match(js, /setInterval\(updateDashboardTime, 60000\)/);
+  assert.doesNotMatch(js, /setInterval\(renderDashboard, 60000\)/);
   assert.doesNotMatch(js, /setInterval\(renderDashboard, 1000\)/);
   assert.match(js, /closest\('\[data-no-drag="true"\]'\)/);
   assert.match(js, /addEventListener\('mouseleave', \(\) => clearHover\(widget\)\)/);
+  assert.doesNotMatch(js, /active\.blur\(\)/);
+  assert.doesNotMatch(js, /syncHover/);
+  assert.doesNotMatch(js, /addEventListener\('mousemove'/);
   assert.match(js, /startDragging/);
   assert.doesNotMatch(css, /transition: background/);
   assert.doesNotMatch(css, /\.widget\.is-hovered \.disk/);
@@ -257,20 +261,35 @@ test('runtime widget avoids hover visuals that persist in transparent windows', 
   assert.doesNotMatch(css, /\.widget\.is-hovered [^{]+\{[^}]*drop-shadow/s);
 });
 
-test('Pomodoro controls are hover/focus only and excluded from window drag', async () => {
+test('Pomodoro controls hide on hover leave and are excluded from window drag', async () => {
   const css = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8');
   const js = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
 
   assert.match(css, /\.pomodoro-controls\s*\{[^}]*display: none;/s);
-  assert.match(css, /\.widget\.pomodoro\.is-hovered \.pomodoro-controls,/);
-  assert.match(css, /\.widget\.pomodoro:focus-within \.pomodoro-controls\s*\{\s*display: flex;/);
+  assert.match(css, /\.widget\.pomodoro\.is-hovered \.pomodoro-controls\s*\{\s*display: flex;/);
+  assert.doesNotMatch(css, /\.widget\.pomodoro:focus-within \.pomodoro-controls/);
   assert.match(css, /\.pomodoro-controls\s*\{[^}]*-webkit-app-region: no-drag;/s);
   assert.match(css, /\.pomodoro-btn\s*\{[^}]*-webkit-app-region: no-drag;/s);
+  assert.match(css, /\.pomodoro-time,/);
+  assert.match(css, /\.pomodoro-minute-input\s*\{[^}]*-webkit-app-region: no-drag;/s);
   assert.match(css, /\.widget\.pomodoro\.paused \.num\s*\{[^}]*opacity: \.58;/s);
   assert.match(css, /\.widget\.pomodoro\.paused \.pomodoro-btn\.toggle\s*\{/);
   assert.match(js, /data-pomodoro-action/);
+  assert.match(js, /data-pomodoro-edit="minutes"/);
+  assert.match(js, /setPomodoroMinutes\(pomodoro, input\.value\)/);
+  assert.match(js, /createPomodoroMinuteButton/);
   assert.match(js, /renderPomodoroOnly/);
   assert.match(js, /function handlePomodoroAction\(action\)\s*\{\s*pomodoro = applyPomodoroAction\(pomodoro, action\);\s*renderPomodoroOnly\(\);\s*\}/);
+});
+
+test('timer digits render on an explicit paint plate to avoid transparent-window overdraw', async () => {
+  const css = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8');
+
+  assert.match(css, /\.num\s*\{[^}]*background: rgba\(13, 14, 18, \.28\);/s);
+  assert.match(css, /\.num\s*\{[^}]*contain: paint;/s);
+  assert.match(css, /\.num\s*\{[^}]*isolation: isolate;/s);
+  assert.match(css, /\.num\s*\{[^}]*font-variant-numeric: tabular-nums;/s);
+  assert.match(css, /\.num\s*\{[^}]*min-width: 66px;/s);
 });
 
 test('Tauri widget window is wide enough for Claude and Codex gauges', async () => {

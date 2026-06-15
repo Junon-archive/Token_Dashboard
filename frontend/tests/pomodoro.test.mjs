@@ -5,6 +5,7 @@ import {
   applyPomodoroAction,
   createPomodoroState,
   pomodoroSnapshot,
+  setPomodoroMinutes,
   tickPomodoro,
 } from '../src/pomodoro.js';
 import { formatRemainingMinutes, renderPomodoroWidget } from '../src/widget.js';
@@ -82,6 +83,28 @@ test('timer auto-advances phases on tick', () => {
   assert.equal(state.phase, 'BREAK');
   state = tickPomodoro(state, new Date('2026-06-12T00:25:00.002Z'));
   assert.equal(state.phase, 'FOCUS');
+});
+
+test('setting minutes updates the current phase duration and pauses at full time', () => {
+  let state = createPomodoroState({ now: START });
+  state = tickPomodoro(state, new Date('2026-06-12T00:07:00.000Z'));
+  state = setPomodoroMinutes(state, 35, new Date('2026-06-12T00:07:00.000Z'));
+  const snapshot = pomodoroSnapshot(state, new Date('2026-06-12T00:07:00.000Z'));
+
+  assert.equal(state.settings.focusMin, 35);
+  assert.equal(snapshot.state, 'PAUSED');
+  assert.equal(snapshot.phase, 'FOCUS');
+  assert.equal(snapshot.primary.used_pct, 0);
+  assert.equal(formatRemainingMinutes(snapshot.primary.resets_at, new Date('2026-06-12T00:07:00.000Z')), '35');
+});
+
+test('setting minutes clamps to a practical local-only range', () => {
+  let state = createPomodoroState({ now: START });
+  state = setPomodoroMinutes(state, 0, START);
+  assert.equal(state.settings.focusMin, 1);
+
+  state = setPomodoroMinutes(state, 999, START);
+  assert.equal(state.settings.focusMin, 180);
 });
 
 test('pomodoro module has no provider or network dependencies', async () => {

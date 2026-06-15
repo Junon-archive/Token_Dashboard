@@ -154,7 +154,7 @@ export function renderUsageWidget(snapshot, options = {}) {
     <div class="disk"></div>
     <svg class="gauge" viewBox="0 0 140 140" aria-hidden="true">${arcsSvg(snapshot.primary, snapshot.secondary)}${ticksSvg()}</svg>
     <div class="center">
-      <div class="num">${countdown}</div>
+      <div class="num" data-countdown-provider="${provider.className}">${countdown}</div>
       <div class="lbl">${provider.label}</div>
       <div class="lamp">${lamp.icon}<span class="lt">${lamp.text}</span></div>
     </div>
@@ -179,7 +179,7 @@ export function renderPomodoroWidget(timer, options = {}) {
     <div class="disk"></div>
     <svg class="gauge" viewBox="0 0 140 140" aria-hidden="true">${arcsSvg(timer.primary, null)}${ticksSvg({ majorEvery: 4 })}</svg>
     <div class="center">
-      <div class="num">${minutes}</div>
+      <button class="num pomodoro-time" type="button" data-no-drag="true" data-pomodoro-edit="minutes" aria-label="Set Pomodoro minutes">${minutes}</button>
       <div class="lbl">${label}</div>
       <div class="lamp"><span class="lt"></span></div>
     </div>
