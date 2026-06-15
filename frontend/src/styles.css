@@ -15,7 +15,6 @@
   --text: #f3f4f6;
   --label: rgba(244, 246, 250, .55);
   --disk-bg: rgba(20, 21, 26, .52);
-  --disk-mask: radial-gradient(circle, #000 0 62%, rgba(0, 0, 0, .82) 74%, rgba(0, 0, 0, .28) 90%, transparent 100%);
   --size: 140px;
   --scale: 1;
   --ease: cubic-bezier(.4, 0, .2, 1);
@@ -87,6 +86,7 @@ body {
   --brand-bright: var(--pomodoro-focus-bright);
 }
 
+/* [REFACTOR] Remove backdrop-filter/mask-image so WebKitGTK does not keep a rectangular damage region around the disk. */
 .disk {
   position: absolute;
   left: 50%;
@@ -95,21 +95,26 @@ body {
   height: 128px;
   margin: -64px 0 0 -64px;
   border-radius: 50%;
-  background: var(--disk-bg);
+  background: rgba(20, 20, 30, .85);
   border: 0;
-  mask-image: var(--disk-mask);
-  -webkit-mask-image: var(--disk-mask);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
-svg.gauge {
+/* [REFACTOR] Keep the circular gauge clipped at the wrapper boundary and limit paint invalidation to the arc layer. */
+.gauge-wrapper {
+  position: absolute;
+  inset: 0;
+  clip-path: circle(50%);
+  will-change: contents;
+}
+
+svg.gauge-arc {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   display: block;
   overflow: visible;
+  will-change: transform;
 }
 
 .tick {
@@ -168,17 +173,9 @@ svg.gauge {
   pointer-events: none;
 }
 
+/* [REFACTOR] Keep text updates in HTML spans outside the SVG compositor path. */
 .num {
-  min-width: 66px;
-  min-height: 35px;
-  display: grid;
-  place-items: center;
-  contain: paint;
-  isolation: isolate;
-  padding: 0 5px 2px;
-  border: 0;
-  border-radius: 10px;
-  background: rgba(13, 14, 18, .28);
+  display: block;
   font-size: 30px;
   font-weight: 560;
   letter-spacing: -1px;
@@ -190,6 +187,41 @@ svg.gauge {
   transition: opacity var(--t-state) var(--ease);
 }
 
+.num {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+}
+
+.gauge-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  pointer-events: none;
+  will-change: contents;
+}
+
+.gauge-label .name {
+  display: block;
+}
+
+.gauge-label .num {
+  pointer-events: auto;
+}
+
+.gauge-label .num:focus-visible {
+  outline: 1px solid var(--arc);
+  outline-offset: 2px;
+}
+
+/* [REFACTOR] Label text is now a plain HTML span so its updates are isolated from the gauge SVG. */
+.name,
 .lbl {
   font-size: 9px;
   font-weight: 600;
@@ -295,7 +327,7 @@ svg.gauge {
   opacity: .5;
 }
 
-.widget.stale .lbl {
+.widget.stale .name {
   opacity: .45;
 }
 
@@ -311,9 +343,9 @@ svg.gauge {
 }
 
 .widget.notin .num,
-.widget.notin .lbl,
+.widget.notin .name,
 .widget.autherr .num,
-.widget.autherr .lbl {
+.widget.autherr .name {
   display: none;
 }
 
@@ -343,7 +375,6 @@ svg.gauge {
 .widget.pomodoro.paused {
   --arc-op: .3;
   --tm: rgba(255, 255, 255, .08);
-  filter: grayscale(.55);
 }
 
 .widget.pomodoro.paused .disk {
@@ -354,24 +385,21 @@ svg.gauge {
   opacity: .58;
 }
 
-.widget.pomodoro.paused .lbl {
+.widget.pomodoro.paused .name {
   color: rgba(244, 246, 250, .82);
 }
 
-.widget.pomodoro .center {
-  pointer-events: auto;
-}
-
-.widget.pomodoro .lbl,
 .widget.pomodoro .lamp {
   pointer-events: none;
 }
 
+/* [REFACTOR] Pomodoro minute editing stays on the HTML span, not the SVG tree. */
 .widget.pomodoro .num {
   min-width: 48px;
+  cursor: text;
+  pointer-events: auto;
 }
 
-.pomodoro-time,
 .pomodoro-minute-input {
   appearance: none;
   font-family: inherit;
@@ -379,15 +407,24 @@ svg.gauge {
   -webkit-app-region: no-drag;
 }
 
-.pomodoro-time:focus-visible,
 .pomodoro-minute-input:focus-visible {
   outline: 1px solid var(--arc);
   outline-offset: 2px;
 }
 
 .pomodoro-minute-input {
+  display: block;
+  min-width: 48px;
   width: 58px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 30px;
+  font-weight: 560;
+  line-height: 1;
   text-align: center;
+  pointer-events: auto;
 }
 
 .pomodoro-minute-input::-webkit-outer-spin-button,
@@ -399,10 +436,12 @@ svg.gauge {
 .pomodoro-controls {
   position: absolute;
   left: 50%;
-  bottom: 13px;
+  top: 140px;
   display: none;
   gap: 5px;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateZ(0);
+  will-change: transform;
+  transition: none;
   -webkit-app-region: no-drag;
 }
 

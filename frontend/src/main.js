@@ -67,90 +67,149 @@ const root = document.querySelector('#app');
 let providerSnapshots = await loadSnapshots();
 let pomodoro = createPomodoroState();
 let editingPomodoroMinutes = false;
+/* [REFACTOR] Keep live DOM references per widget so HTML span updates do not touch SVG glyph layers. */
+const dashboardRefs = {
+  widgets: new Map(),
+};
 
-function renderDashboard() {
-  pomodoro = tickPomodoro(pomodoro);
-  root.innerHTML = renderUsageDashboard([...providerSnapshots, pomodoroSnapshot(pomodoro)]);
-  bindWidgetInteractions();
+function widgetStateClass(snapshot) {
+  if (snapshot.provider === 'pomodoro') {
+    if (snapshot.state === 'BREAK') {
+      return 'break';
+    }
+    if (snapshot.state === 'PAUSED') {
+      return 'paused';
+    }
+    return 'focus';
+  }
+  const usedPct = snapshot.primary?.used_pct;
+  switch (snapshot.state) {
+    case 'NORMAL':
+      return '';
+    case 'WARN':
+      return 'low';
+    case 'CRITICAL':
+      return usedPct >= 100 ? 'depleted' : 'critical';
+    case 'STALE':
+    case 'RATE_LIMITED':
+      return 'stale';
+    case 'NOT_LOGGED_IN':
+      return 'notin';
+    case 'AUTH_ERROR':
+      return 'autherr';
+    default:
+      return 'stale';
+  }
 }
 
-function renderPomodoroOnly() {
-  pomodoro = tickPomodoro(pomodoro);
-  const current = root.querySelector('[data-provider="pomodoro"]');
-  if (!current) {
-    renderDashboard();
+function collectDashboardRefs() {
+  dashboardRefs.widgets.clear();
+  for (const widget of root.querySelectorAll('.widget')) {
+    const provider = widget.dataset.provider;
+    dashboardRefs.widgets.set(provider, {
+      widget,
+      arcMain: widget.querySelector('.arc-main'),
+      arcSec: widget.querySelector('.arc-sec'),
+      number: widget.querySelector('.gauge-label .num'),
+      label: widget.querySelector('.gauge-label .name'),
+      controls: widget.querySelector('.pomodoro-controls'),
+      toggle: widget.querySelector('[data-pomodoro-action="toggle"]'),
+      skip: widget.querySelector('[data-pomodoro-action="skip"]'),
+    });
+  }
+}
+
+function setWidgetClass(ref, snapshot) {
+  const provider = String(snapshot.provider).toLowerCase();
+  const stateClass = widgetStateClass({ ...snapshot, provider });
+  const keepHover = ref.widget.classList.contains('is-hovered');
+  ref.widget.className = ['widget', provider, stateClass].filter(Boolean).join(' ');
+  if (keepHover) {
+    ref.widget.classList.add('is-hovered');
+  }
+  ref.widget.dataset.state = snapshot.state;
+}
+
+function setArcProgress(arc, usedPct) {
+  if (!arc) {
     return;
   }
-  const snapshot = pomodoroSnapshot(pomodoro);
-  const stateClass = snapshot.state === 'BREAK' ? 'break' : snapshot.state === 'PAUSED' ? 'paused' : 'focus';
-  const isHovered = current.classList.contains('is-hovered');
-  current.className = `widget pomodoro ${stateClass}`;
-  if (isHovered) {
-    current.classList.add('is-hovered');
+  const dashArray = Number.parseFloat(arc.getAttribute('stroke-dasharray') ?? '');
+  if (!Number.isFinite(dashArray)) {
+    return;
   }
-  current.dataset.state = snapshot.state;
+  const clamped = Math.max(0, Math.min(100, usedPct ?? 0));
+  arc.setAttribute('stroke-dashoffset', (dashArray * (clamped / 100)).toFixed(2));
+}
 
-  const arc = current.querySelector('.arc-main');
-  const dashArray = Number.parseFloat(arc?.getAttribute('stroke-dasharray') ?? '');
-  if (arc && Number.isFinite(dashArray)) {
-    const usedPct = Math.max(0, Math.min(100, snapshot.primary?.used_pct ?? 0));
-    arc.setAttribute('stroke-dashoffset', (dashArray * (usedPct / 100)).toFixed(2));
+function updateProviderWidget(snapshot, now = new Date()) {
+  const provider = String(snapshot.provider ?? '').toLowerCase();
+  const ref = dashboardRefs.widgets.get(provider);
+  if (!ref) {
+    return;
   }
+  setWidgetClass(ref, { ...snapshot, provider });
+  setArcProgress(ref.arcMain, snapshot.primary?.used_pct);
+  setArcProgress(ref.arcSec, snapshot.secondary?.used_pct);
+  if (ref.number) {
+    ref.number.textContent = formatResetCountdown(snapshot.primary?.resets_at, now);
+  }
+}
 
-  const minutes = current.querySelector('.pomodoro-time');
-  if (minutes && !editingPomodoroMinutes) {
-    minutes.textContent = formatRemainingMinutes(snapshot.primary?.resets_at);
+function updatePomodoroWidget(now = new Date()) {
+  pomodoro = tickPomodoro(pomodoro);
+  const snapshot = pomodoroSnapshot(pomodoro, now);
+  const ref = dashboardRefs.widgets.get('pomodoro');
+  if (!ref) {
+    return;
   }
+  setWidgetClass(ref, snapshot);
+  setArcProgress(ref.arcMain, snapshot.primary?.used_pct);
+  if (ref.number && !editingPomodoroMinutes) {
+    ref.number.textContent = formatRemainingMinutes(snapshot.primary?.resets_at, now);
+  }
+  if (ref.label) {
+    ref.label.textContent = snapshot.state === 'BREAK' ? 'Break' : snapshot.state === 'PAUSED' ? 'Paused' : 'Focus';
+  }
+  if (ref.toggle) {
+    ref.toggle.classList.toggle('is-running', snapshot.state !== 'PAUSED');
+    ref.toggle.setAttribute('aria-label', `${snapshot.action_label} timer`);
+  }
+  if (ref.skip) {
+    ref.skip.setAttribute('aria-label', snapshot.phase === 'BREAK' ? 'Start focus' : 'Start break');
+  }
+}
 
-  const label = current.querySelector('.lbl');
-  if (label) {
-    label.textContent = snapshot.state === 'BREAK' ? 'Break' : snapshot.state === 'PAUSED' ? 'Paused' : 'Focus';
-  }
-
-  const toggle = current.querySelector('[data-pomodoro-action="toggle"]');
-  if (toggle) {
-    toggle.textContent = snapshot.action_label;
-    toggle.setAttribute('aria-label', `${snapshot.action_label} timer`);
-  }
-
-  const skip = current.querySelector('[data-pomodoro-action="skip"]');
-  if (skip) {
-    skip.setAttribute('aria-label', snapshot.phase === 'BREAK' ? 'Start focus' : 'Start break');
-  }
+function renderInitialDashboard() {
+  pomodoro = tickPomodoro(pomodoro);
+  root.innerHTML = renderUsageDashboard([...providerSnapshots, pomodoroSnapshot(pomodoro)]);
+  collectDashboardRefs();
+  bindWidgetInteractions();
 }
 
 function handlePomodoroAction(action) {
   pomodoro = applyPomodoroAction(pomodoro, action);
-  renderPomodoroOnly();
+  updatePomodoroWidget();
 }
 
 function clearHover(widget) {
   widget?.classList.remove('is-hovered');
+  if (widget?.classList.contains('pomodoro')) {
+    const controls = widget.querySelector('.pomodoro-controls');
+    if (controls) {
+      void controls.offsetHeight;
+    }
+  }
 }
 
 function updateDashboardTime() {
   const now = new Date();
   for (const snapshot of providerSnapshots) {
-    const provider = String(snapshot.provider ?? '').toLowerCase();
-    const label = root.querySelector(`[data-countdown-provider="${provider}"]`);
-    if (label) {
-      label.textContent = formatResetCountdown(snapshot.primary?.resets_at, now);
-    }
+    updateProviderWidget(snapshot, now);
   }
   if (!editingPomodoroMinutes) {
-    renderPomodoroOnly();
+    updatePomodoroWidget(now);
   }
-}
-
-function createPomodoroMinuteButton(text) {
-  const button = document.createElement('button');
-  button.className = 'num pomodoro-time';
-  button.type = 'button';
-  button.dataset.noDrag = 'true';
-  button.dataset.pomodoroEdit = 'minutes';
-  button.setAttribute('aria-label', 'Set Pomodoro minutes');
-  button.textContent = text;
-  return button;
 }
 
 function finishPomodoroMinuteEdit(input, commit) {
@@ -162,11 +221,29 @@ function finishPomodoroMinuteEdit(input, commit) {
     pomodoro = setPomodoroMinutes(pomodoro, input.value);
   }
   const snapshot = pomodoroSnapshot(pomodoro);
-  input.replaceWith(createPomodoroMinuteButton(formatRemainingMinutes(snapshot.primary?.resets_at)));
-  renderPomodoroOnly();
+  const ref = dashboardRefs.widgets.get('pomodoro');
+  const next = createPomodoroMinuteSpan(formatRemainingMinutes(snapshot.primary?.resets_at));
+  input.replaceWith(next);
+  if (ref) {
+    ref.number = next;
+  }
+  updatePomodoroWidget();
 }
 
-function beginPomodoroMinuteEdit(button) {
+/* [REFACTOR] Keep Pomodoro minute editing on HTML spans so the editable glyph is detached from SVG repaint timing. */
+function createPomodoroMinuteSpan(text) {
+  const span = document.createElement('span');
+  span.className = 'num pomodoro-display';
+  span.dataset.pomodoroEdit = 'minutes';
+  span.dataset.noDrag = 'true';
+  span.tabIndex = 0;
+  span.setAttribute('role', 'button');
+  span.setAttribute('aria-label', 'Set Pomodoro minutes');
+  span.textContent = text;
+  return span;
+}
+
+function beginPomodoroMinuteEdit(number) {
   if (editingPomodoroMinutes) {
     return;
   }
@@ -178,11 +255,15 @@ function beginPomodoroMinuteEdit(button) {
   input.min = '1';
   input.max = '180';
   input.step = '1';
-  input.value = button.textContent.trim();
+  input.value = number.textContent.trim();
   input.setAttribute('aria-label', 'Pomodoro minutes');
   input.dataset.noDrag = 'true';
 
-  button.replaceWith(input);
+  const ref = dashboardRefs.widgets.get('pomodoro');
+  number.replaceWith(input);
+  if (ref) {
+    ref.number = input;
+  }
   input.focus();
   input.select();
 
@@ -199,6 +280,19 @@ function beginPomodoroMinuteEdit(button) {
   });
 }
 
+function syncHover(widget, event) {
+  if (!widget) {
+    return;
+  }
+  const rect = widget.getBoundingClientRect();
+  const isInside =
+    event.clientX >= rect.left &&
+    event.clientX <= rect.right &&
+    event.clientY >= rect.top &&
+    event.clientY <= rect.bottom;
+  widget.classList.toggle('is-hovered', isInside);
+}
+
 function bindWidgetInteractions(scope = root) {
   const widgets = scope.matches?.('.widget') ? [scope] : scope.querySelectorAll('.widget');
   for (const widget of widgets) {
@@ -210,6 +304,10 @@ function bindWidgetInteractions(scope = root) {
     widget.addEventListener(
       'mousedown',
       (event) => {
+        if (event.target.closest('[data-pomodoro-edit="minutes"]')) {
+          event.preventDefault();
+          return;
+        }
         if (event.target.closest('[data-no-drag="true"]')) {
           return;
         }
@@ -240,6 +338,22 @@ root.addEventListener('click', (event) => {
   handlePomodoroAction(control.dataset.pomodoroAction);
 });
 
+root.addEventListener('keydown', (event) => {
+  const edit = event.target.closest('[data-pomodoro-edit="minutes"]');
+  if (!edit) {
+    return;
+  }
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    beginPomodoroMinuteEdit(edit);
+  }
+});
+
+window.addEventListener('pointermove', (event) => {
+  for (const widget of root.querySelectorAll('.widget')) {
+    syncHover(widget, event);
+  }
+});
 window.addEventListener('mouseleave', () => root.querySelectorAll('.widget').forEach(clearHover));
 document.addEventListener('mouseleave', () => root.querySelectorAll('.widget').forEach(clearHover));
 window.addEventListener('blur', () => root.querySelectorAll('.widget').forEach(clearHover));
@@ -249,5 +363,5 @@ document.addEventListener('mouseout', (event) => {
   }
 });
 
-renderDashboard();
+renderInitialDashboard();
 setInterval(updateDashboardTime, 60000);

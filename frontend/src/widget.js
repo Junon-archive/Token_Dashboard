@@ -143,6 +143,12 @@ function lampForSnapshot(snapshot) {
   return { icon: '', text: '' };
 }
 
+/* [REFACTOR] Keep mutable glyph text out of SVG so transparent WebKit only repaints HTML spans. */
+function gaugeLabelHtml({ value, name, valueAttrs = '', valueClass = '' }) {
+  const className = ['num', valueClass].filter(Boolean).join(' ');
+  return `<div class="gauge-label"><span class="${className}" ${valueAttrs}>${value}</span><span class="name">${name}</span></div>`;
+}
+
 export function renderUsageWidget(snapshot, options = {}) {
   const now = options.now ?? new Date();
   const provider = providerView(options.provider ?? snapshot.provider);
@@ -152,12 +158,15 @@ export function renderUsageWidget(snapshot, options = {}) {
 
   return `<section class="${classes}" data-provider="${provider.className}" data-state="${snapshot.state}" data-tauri-drag-region="deep" aria-label="${provider.ariaLabel}">
     <div class="disk"></div>
-    <svg class="gauge" viewBox="0 0 140 140" aria-hidden="true">${arcsSvg(snapshot.primary, snapshot.secondary)}${ticksSvg()}</svg>
-    <div class="center">
-      <div class="num" data-countdown-provider="${provider.className}">${countdown}</div>
-      <div class="lbl">${provider.label}</div>
-      <div class="lamp">${lamp.icon}<span class="lt">${lamp.text}</span></div>
+    <div class="gauge-wrapper">
+      <svg class="gauge-arc" viewBox="0 0 140 140" aria-hidden="true">${arcsSvg(snapshot.primary, snapshot.secondary)}${ticksSvg()}</svg>
+      ${gaugeLabelHtml({
+        value: countdown,
+        name: provider.label,
+        valueAttrs: `data-countdown-provider="${provider.className}"`,
+      })}
     </div>
+    <div class="center"><div class="lamp">${lamp.icon}<span class="lt">${lamp.text}</span></div></div>
     <div class="update-badge">${CLOCK}<span>${staleAgeLabel(snapshot.fetched_at, now)}</span></div>
   </section>`;
 }
@@ -177,15 +186,18 @@ export function renderPomodoroWidget(timer, options = {}) {
 
   return `<section class="${classes}" data-provider="pomodoro" data-state="${timer.state}" data-tauri-drag-region="deep" aria-label="Pomodoro timer widget">
     <div class="disk"></div>
-    <svg class="gauge" viewBox="0 0 140 140" aria-hidden="true">${arcsSvg(timer.primary, null)}${ticksSvg({ majorEvery: 4 })}</svg>
-    <div class="center">
-      <button class="num pomodoro-time" type="button" data-no-drag="true" data-pomodoro-edit="minutes" aria-label="Set Pomodoro minutes">${minutes}</button>
-      <div class="lbl">${label}</div>
-      <div class="lamp"><span class="lt"></span></div>
+    <div class="gauge-wrapper">
+      <svg class="gauge-arc" viewBox="0 0 140 140" aria-hidden="true">${arcsSvg(timer.primary, null)}${ticksSvg({ majorEvery: 4 })}</svg>
+      ${gaugeLabelHtml({
+        value: minutes,
+        name: label,
+        valueClass: 'pomodoro-display',
+        valueAttrs: 'data-pomodoro-edit="minutes" tabindex="0" role="button" aria-label="Set Pomodoro minutes" data-no-drag="true"',
+      })}
     </div>
     <div class="pomodoro-controls" role="toolbar" aria-label="Pomodoro controls" data-no-drag="true">
       <button class="pomodoro-btn reset" type="button" data-pomodoro-action="reset" aria-label="Reset timer">Reset</button>
-      <button class="pomodoro-btn toggle" type="button" data-pomodoro-action="toggle" aria-label="${actionLabel} timer">${actionLabel}</button>
+      <button class="pomodoro-btn toggle" type="button" data-pomodoro-action="toggle" aria-label="${actionLabel} timer">Toggle</button>
       <button class="pomodoro-btn skip" type="button" data-pomodoro-action="skip" aria-label="${skipLabel}">Skip</button>
     </div>
   </section>`;

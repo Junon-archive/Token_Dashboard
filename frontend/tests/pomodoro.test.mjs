@@ -43,6 +43,22 @@ test('resume preserves remaining duration', () => {
   assert.equal(formatRemainingMinutes(snapshot.primary.resets_at, new Date('2026-06-12T00:12:00.000Z')), '13');
 });
 
+test('resume keeps the gauge progress from the paused point', () => {
+  let state = createPomodoroState({ now: START, dialFullMin: 20 });
+  state = applyPomodoroAction(state, 'toggle', new Date('2026-06-12T00:08:00.000Z'));
+  const paused = pomodoroSnapshot(state, new Date('2026-06-12T00:08:00.000Z'));
+
+  state = applyPomodoroAction(state, 'toggle', new Date('2026-06-12T00:10:00.000Z'));
+  const resumed = pomodoroSnapshot(state, new Date('2026-06-12T00:10:00.000Z'));
+  const later = pomodoroSnapshot(state, new Date('2026-06-12T00:12:00.000Z'));
+
+  assert.equal(paused.primary.used_pct, 40);
+  assert.equal(resumed.primary.used_pct, 40);
+  assert.equal(formatRemainingMinutes(resumed.primary.resets_at, new Date('2026-06-12T00:10:00.000Z')), '12');
+  assert.equal(later.primary.used_pct, 50);
+  assert.equal(formatRemainingMinutes(later.primary.resets_at, new Date('2026-06-12T00:12:00.000Z')), '10');
+});
+
 test('reset returns current phase to full paused duration', () => {
   let state = createPomodoroState({ now: START });
   state = tickPomodoro(state, new Date('2026-06-12T00:07:00.000Z'));
@@ -64,7 +80,7 @@ test('skip advances focus to break and renders break widget', () => {
   assert.equal(snapshot.state, 'BREAK');
   assert.equal(formatRemainingMinutes(snapshot.primary.resets_at, START), '5');
   assert.match(html, /class="widget pomodoro break"/);
-  assert.match(html, /<div class="lbl">Break<\/div>/);
+  assert.match(html, /<span class="name">Break<\/span>/);
 });
 
 test('skip advances break to focus', () => {
