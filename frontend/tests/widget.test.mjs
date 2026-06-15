@@ -232,6 +232,9 @@ test('runtime widget avoids hover visuals that persist in transparent windows', 
 
   assert.match(js, /import \{ renderUsageDashboard \} from '\.\/widget\.js';/);
   assert.match(js, /from '\.\/pomodoro\.js';/);
+  assert.match(js, /tickPomodoro/);
+  assert.match(js, /pomodoroSnapshot\(pomodoro\)/);
+  assert.doesNotMatch(js, /pomodoroSnapshot\(\)/);
   assert.match(js, /usage_snapshots/);
   assert.doesNotMatch(js, /mock_usage_snapshots/);
   assert.match(js, /return fallbackSnapshots;/);

@@ -1,5 +1,5 @@
 import { renderUsageDashboard } from './widget.js';
-import { applyPomodoroAction, createPomodoroState, pomodoroSnapshot } from './pomodoro.js';
+import { applyPomodoroAction, createPomodoroState, pomodoroSnapshot, tickPomodoro } from './pomodoro.js';
 
 const fallbackSnapshots = [{
   provider: 'claude',
@@ -62,7 +62,8 @@ let providerSnapshots = await loadSnapshots();
 let pomodoro = createPomodoroState();
 
 function renderDashboard() {
-  root.innerHTML = renderUsageDashboard([...providerSnapshots, pomodoroSnapshot()]);
+  pomodoro = tickPomodoro(pomodoro);
+  root.innerHTML = renderUsageDashboard([...providerSnapshots, pomodoroSnapshot(pomodoro)]);
   bindWidgetInteractions();
 }
 
