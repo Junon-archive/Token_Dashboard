@@ -8,7 +8,7 @@ use crate::{
     snapshot::{ProviderKind, UsageSnapshot},
     token_source::{
         default_codex_auth_path, read_claude_credentials_default, read_codex_credentials_from_path,
-        ClaudeCredentials, CodexCredentials, TokenSourceError,
+        ClaudeCredentials, CodexCredentials, FilePermissionWarning, TokenSourceError,
     },
 };
 use chrono::{DateTime, Utc};
@@ -59,12 +59,38 @@ pub struct DefaultCredentialSource;
 
 impl CredentialSource for DefaultCredentialSource {
     fn claude_credentials(&self) -> Result<ClaudeCredentials, TokenSourceError> {
-        read_claude_credentials_default().map(|(credentials, _warning)| credentials)
+        read_claude_credentials_default().map(|(credentials, warning)| {
+            warn_if_token_file_permissions("Claude", warning.as_ref());
+            credentials
+        })
     }
 
     fn codex_credentials(&self) -> Result<CodexCredentials, TokenSourceError> {
-        read_codex_credentials_from_path(&default_codex_auth_path())
-            .map(|(credentials, _warning)| credentials)
+        read_codex_credentials_from_path(&default_codex_auth_path()).map(
+            |(credentials, warning)| {
+                warn_if_token_file_permissions("Codex", warning.as_ref());
+                credentials
+            },
+        )
+    }
+}
+
+fn token_file_permission_warning_message(
+    provider: &str,
+    warning: &FilePermissionWarning,
+) -> String {
+    format!(
+        "token-dashboard warning: {provider} credential file permissions are {:03o}; expected 600 or stricter",
+        warning.mode
+    )
+}
+
+fn warn_if_token_file_permissions(provider: &str, warning: Option<&FilePermissionWarning>) {
+    if let Some(warning) = warning {
+        eprintln!(
+            "{}",
+            token_file_permission_warning_message(provider, warning)
+        );
     }
 }
 
@@ -109,12 +135,26 @@ where
         }
     }
 
+    pub fn set_endpoints(&mut self, endpoints: EndpointConfig) {
+        self.endpoints = endpoints;
+    }
+
     pub async fn snapshots(&mut self) -> Vec<UsageSnapshot> {
         vec![self.claude_snapshot().await, self.codex_snapshot().await]
     }
 
     pub async fn frontend_snapshots(&mut self) -> Vec<FrontendSnapshot> {
         self.snapshots().await.into_iter().map(Into::into).collect()
+    }
+
+    pub async fn frontend_snapshot_for_provider(
+        &mut self,
+        provider: ProviderKind,
+    ) -> FrontendSnapshot {
+        match provider {
+            ProviderKind::Claude => self.claude_snapshot().await.into(),
+            ProviderKind::Codex => self.codex_snapshot().await.into(),
+        }
     }
 
     async fn claude_snapshot(&mut self) -> UsageSnapshot {
@@ -180,7 +220,10 @@ mod tests {
         snapshot::UsageState,
     };
     use async_trait::async_trait;
-    use std::sync::{Arc, Mutex};
+    use std::{
+        path::PathBuf,
+        sync::{Arc, Mutex},
+    };
 
     #[derive(Clone)]
     struct FixtureCredentials {
@@ -264,6 +307,23 @@ mod tests {
                 last_refresh: None,
             }),
         }
+    }
+
+    #[test]
+    fn token_file_permission_warning_is_sanitized() {
+        let warning = FilePermissionWarning {
+            path: PathBuf::from("/home/example/.codex/auth.json"),
+            mode: 0o644,
+        };
+
+        let message = token_file_permission_warning_message("Codex", &warning);
+
+        assert!(message.contains("Codex"));
+        assert!(message.contains("644"));
+        assert!(!message.contains("/home/example"));
+        assert!(!message.contains("auth.json"));
+        assert!(!message.contains("access_token"));
+        assert!(!message.contains("refresh_token"));
     }
 
     #[tokio::test]

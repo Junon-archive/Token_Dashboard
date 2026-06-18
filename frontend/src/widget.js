@@ -62,6 +62,8 @@ export function visualClassForSnapshot(snapshot) {
       return 'break';
     case 'PAUSED':
       return 'paused';
+    case 'ENDING':
+      return 'ending';
     default:
       return 'stale';
   }
@@ -156,7 +158,7 @@ export function renderUsageWidget(snapshot, options = {}) {
   const countdown = formatResetCountdown(snapshot.primary?.resets_at, now);
   const lamp = lampForSnapshot(snapshot);
 
-  return `<section class="${classes}" data-provider="${provider.className}" data-state="${snapshot.state}" data-tauri-drag-region="deep" aria-label="${provider.ariaLabel}">
+  return `<section class="${classes}" data-provider="${provider.className}" data-state="${snapshot.state}" aria-label="${provider.ariaLabel}">
     <div class="disk"></div>
     <div class="gauge-wrapper">
       <svg class="gauge-arc" viewBox="0 0 140 140" aria-hidden="true">${arcsSvg(snapshot.primary, snapshot.secondary)}${ticksSvg()}</svg>
@@ -184,20 +186,22 @@ export function renderPomodoroWidget(timer, options = {}) {
 
   const skipLabel = timer.phase === 'BREAK' ? 'Start focus' : 'Start break';
 
-  return `<section class="${classes}" data-provider="pomodoro" data-state="${timer.state}" data-tauri-drag-region="deep" aria-label="Pomodoro timer widget">
-    <div class="disk"></div>
-    <div class="gauge-wrapper">
-      <svg class="gauge-arc" viewBox="0 0 140 140" aria-hidden="true">${arcsSvg(timer.primary, null)}${ticksSvg({ majorEvery: 4 })}</svg>
-      ${gaugeLabelHtml({
-        value: minutes,
-        name: label,
-        valueClass: 'pomodoro-display',
-        valueAttrs: 'data-pomodoro-edit="minutes" tabindex="0" role="button" aria-label="Set Pomodoro minutes" data-no-drag="true"',
-      })}
+  return `<section class="${classes}" data-provider="pomodoro" data-state="${timer.state}" aria-label="Pomodoro timer widget">
+    <div class="pomodoro-stage">
+      <div class="disk"></div>
+      <div class="gauge-wrapper">
+        <svg class="gauge-arc" viewBox="0 0 140 140" aria-hidden="true">${arcsSvg(timer.primary, null)}${ticksSvg({ majorEvery: 4 })}</svg>
+        ${gaugeLabelHtml({
+          value: minutes,
+          name: label,
+          valueClass: 'pomodoro-display',
+          valueAttrs: 'data-pomodoro-edit="minutes" tabindex="0" role="button" aria-label="Set Pomodoro minutes" data-no-drag="true"',
+        })}
+      </div>
     </div>
     <div class="pomodoro-controls" role="toolbar" aria-label="Pomodoro controls" data-no-drag="true">
       <button class="pomodoro-btn reset" type="button" data-no-drag="true" data-pomodoro-action="reset" aria-label="Reset timer">Reset</button>
-      <button class="pomodoro-btn toggle" type="button" data-no-drag="true" data-pomodoro-action="toggle" aria-label="${actionLabel} timer">Toggle</button>
+      <button class="pomodoro-btn toggle" type="button" data-no-drag="true" data-pomodoro-action="toggle" aria-label="${actionLabel} timer">${actionLabel}</button>
       <button class="pomodoro-btn skip" type="button" data-no-drag="true" data-pomodoro-action="skip" aria-label="${skipLabel}">Skip</button>
     </div>
   </section>`;

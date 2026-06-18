@@ -2,14 +2,20 @@
 
 ## Current Status
 - Current milestone: M3 — Three Widgets and Settings
-- Current task: Manual visual verification for Pomodoro repaint and minute editing, then start config persistence for settings
-- Last completed task: Reduced transparent-window repaint artifacts, made Pomodoro controls hide on hover leave, and added center-minute editing
+- Current task: Final M3 documentation and pre-commit verification after Linux X11 rendering stabilization
+- Last completed task: Stabilized per-widget rendering with always-grouped layout, smooth command-based drag, automatic enabled-widget compaction, and opaque gauge disks
 - Last command run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
-- Last test result: Passed — frontend Pomodoro/widget tests, `npm run build`, Rust 52 lib tests, 4 smoke tests, 5 contract tests. User confirmed Claude works after re-authentication.
-- Next recommended command: `npm run build && npm test && cargo test --manifest-path src-tauri/Cargo.toml`
+- Last test result: Passed — frontend notifications/Pomodoro/settings/widget tests and Rust 58 lib tests, 4 smoke tests, 5 contract tests
+- Next recommended command: `cargo run --manifest-path src-tauri/Cargo.toml --bin token-dashboard`
 - Blocking issue: None for M2. macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled before declaring cross-platform provider integration complete.
 - Git status note: `.codex/` remains local untracked tooling config and should not be committed. The screenshot reference file is local input and is not required for runtime.
 - Updated at: 2026-06-15 10:25 UTC
+- Updated at: 2026-06-16 00:00 UTC
+- Updated at: 2026-06-16 01:00 UTC
+- Updated at: 2026-06-17 00:30 UTC
+- Updated at: 2026-06-17 03:30 UTC
+- Updated at: 2026-06-18 08:10 UTC
+- Updated at: 2026-06-18 08:40 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -40,6 +46,26 @@
 | 2026-06-15 | Use 12 major ticks only for Pomodoro | Pomodoro benefits from clock-like 5-minute divisions; Claude/Codex retain the accepted 8 major usage ticks | `frontend/src/widget.js`, `frontend/tests/widget.test.mjs` |
 | 2026-06-15 | Avoid full-dashboard timer redraws in the transparent window | Linux transparent WebKit can leave stale glyph/control paint when DOM subtrees are replaced; timer updates now mutate text/classes/arc attributes in place and use a small numeric paint plate | `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
 | 2026-06-15 | Keep Pomodoro minute editing frontend-local for now | Center-click minute setting is useful before persistent settings; the value changes the current phase only, clamps to 1-180 minutes, and resets that phase paused until config persistence is added | `frontend/src/pomodoro.js`, `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/tests/pomodoro.test.mjs` |
+| 2026-06-16 | Make Pomodoro timing follow the active phase duration and redraw faster | A 5-minute timer should shrink over 5 minutes and a 1-minute timer should complete over 60 seconds, so Pomodoro now uses phase-duration progress with a sub-second UI cadence | `frontend/src/pomodoro.js`, `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/tests/pomodoro.test.mjs`, `frontend/tests/widget.test.mjs` |
+| 2026-06-16 | Add a blinking Pomodoro end state before phase handoff | Users need a visible completion cue, so a finished timer now blinks for 30 seconds, can be acknowledged by clicking, and hands off the next phase paused instead of auto-starting | `frontend/src/pomodoro.js`, `frontend/src/main.js`, `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/pomodoro.test.mjs`, `frontend/tests/widget.test.mjs` |
+| 2026-06-16 | Keep Pomodoro hover active across the button gap | The controls sit below the gauge, so the hover region now bridges the gap to keep the buttons clickable instead of collapsing as the pointer moves downward | `frontend/src/main.js`, `frontend/tests/widget.test.mjs` |
+| 2026-06-16 | Keep the Pomodoro toggle button node fixed | Transparent WebKit can become unstable when the control is recreated, so the toggle now stays mounted and only its label/class changes in place | `frontend/src/main.js`, `frontend/tests/widget.test.mjs` |
+| 2026-06-16 | Move Pomodoro controls out of hover overlay into a fixed action row | The button row now lives in the widget flow below the gauge instead of depending on hover overlays, which removes the unstable hover/click boundary | `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
+| 2026-06-16 | Make the Pomodoro control row an opaque paint island | Transparent WebKit can leave old button paint visible through translucent controls, so the row and buttons now use opaque backgrounds with paint containment and isolation | `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
+| 2026-06-16 | Top-align dashboard widgets after adding the Pomodoro button row | Pomodoro is taller than Claude/Codex after the fixed controls row, so the dashboard now aligns widget tops to keep the three circular gauges level | `frontend/src/styles.css`, `frontend/tests/widget.test.mjs` |
+| 2026-06-16 | Add settings before click-through | Once click-through is enabled the widget cannot receive right-click or button events, so settings access and persistence must exist first as the recovery path foundation | `src-tauri/src/main.rs`, `settings.html`, `frontend/src/settings.js`, `src-tauri/src/config.rs` |
+| 2026-06-16 | Keep settings window opaque and separate from the transparent widget | Settings should not participate in the Linux transparent WebKit repaint path, and it needs normal decorations/taskbar behavior for recoverability | `src-tauri/src/main.rs`, `settings.html`, `frontend/src/settings.css` |
+| 2026-06-16 | Implement notification thresholds as pure snapshot logic first | The threshold rules must be CI-safe and token-free; actual OS notification display remains a thin dispatch layer and a platform smoke concern | `frontend/src/notifications.js`, `frontend/tests/notifications.test.mjs`, `frontend/src/main.js` |
+| 2026-06-16 | Open settings automatically when click-through is persisted on | Click-through intentionally prevents right-click, drag, and Pomodoro button events on the widget, so startup must provide a visible recovery path to turn it off | `src-tauri/src/main.rs` |
+| 2026-06-16 | Implement autostart with OS-native files instead of a new plugin | Avoids adding dependency/network risk during M3; Linux uses XDG autostart desktop entries and macOS uses LaunchAgent plist files | `src-tauri/src/autostart.rs`, `src-tauri/src/main.rs` |
+| 2026-06-17 | Re-read settings from the dashboard runtime instead of assuming save implies application | Settings are edited in a separate window, so the transparent widget webview must poll persisted settings and apply widget visibility/Pomodoro duration changes in place | `frontend/src/main.js`, `frontend/src/pomodoro.js` |
+| 2026-06-17 | Keep settings window open while click-through is enabled | If the settings window can close while click-through is on, the user loses the right-click recovery path; close requests now refocus the settings window until click-through is disabled | `src-tauri/src/main.rs`, `frontend/src/settings.js` |
+| 2026-06-17 | Reconcile widget visibility in place instead of repainting the full dashboard root | The old full-window clear plate could itself surface as a long rectangular opaque block on Linux X11 transparent WebKit, so widget visibility changes now add/remove/reorder widget sections without a whole-window repaint pass | `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `RENDERING_REFACTOR.md` |
+| 2026-06-17 | Split the shared dashboard into one transparent window per widget | The remaining X11/WebKitGTK ghost was tied to removing sibling gauges inside one transparent top-level surface, so Claude/Codex/Pomodoro now live in independent widget windows with provider-scoped frontend bootstrapping | `src-tauri/src/main.rs`, `src-tauri/tauri.conf.json`, `src-tauri/capabilities/default.json`, `frontend/src/main.js`, `frontend/src/settings.js`, `frontend/tests/widget.test.mjs`, `src-tauri/tests/window_contract.rs`, `RENDERING_REFACTOR.md` |
+| 2026-06-18 | Make grouped movement a persisted layout mode and route drag through one Rust position path | The native moved-hook approach was unstable on Linux X11; explicit drag commands keep grouped/independent movement under one config-backed layout model and let widget visibility compaction remain deterministic only when grouping is enabled | `src-tauri/src/main.rs`, `src-tauri/src/config.rs`, `frontend/src/main.js`, `frontend/src/settings.js`, `frontend/tests/settings.test.mjs`, `frontend/tests/widget.test.mjs`, `src-tauri/tests/window_contract.rs` |
+| 2026-06-18 | Remove optional ungrouped layout and keep widgets always grouped | Manual verification showed the grouped row is stable while ungrouped mode adds complexity without product value; config normalization now forces grouped layout and settings no longer expose a split-mode toggle | `src-tauri/src/config.rs`, `src-tauri/src/main.rs`, `frontend/src/settings.js`, `frontend/src/main.js`, `frontend/tests/settings.test.mjs`, `roadmap.md` |
+| 2026-06-18 | Use opaque gauge disks and avoid stale opacity dimming | Linux WebKitGTK transparent windows can leave rectangular text backing layers when text/disk/arc opacity changes; stale state is now shown via update badge while gauge paint remains opaque | `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `RENDERING_REFACTOR.md` |
+| 2026-06-18 | Strengthen M3 pre-commit security guardrails | Config writes now reject invalid endpoint overrides before persistence, token-like keys/values are detected more broadly, runtime token-file permission warnings are sanitized, and PoC local home paths are redacted before M4 docs work | `src-tauri/src/config.rs`, `src-tauri/src/dashboard.rs`, `for_specification/poc-result-ubuntu.md`, `roadmap.md` |
 
 ## Milestone Checklist
 
@@ -79,12 +105,12 @@
 - [x] Add Pomodoro widget
 - [x] Add Pomodoro controls and phase switching
 - [x] Add Pomodoro center-minute editing
-- [ ] Add settings window
-- [ ] Add config persistence
-- [ ] Add notification thresholds
-- [ ] Add click-through
-- [ ] Add autostart
-- [ ] Add Pomodoro isolation test
+- [x] Add settings window
+- [x] Add config persistence
+- [x] Add notification thresholds
+- [x] Add click-through
+- [x] Add autostart
+- [x] Add Pomodoro isolation test
 - [ ] Commit M3
 
 ### M4 — Packaging and Release
@@ -217,6 +243,30 @@
 - Commands run: `npm run build`, `npm test`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`
 - Result: Added Tauri 2 transparent always-on-top Claude window shell with Linux DMABUF env guard; rendered Claude gauge from mock snapshot; added CI-safe Node DOM/state tests covering 7 logical states, depleted variant, stale badge, lamps, remaining-quota arcs, and Critical-only reduced-motion pulse guard; short GUI smoke ran until timeout without panic after replacing the placeholder icon
 - Next step: Perform visual Linux X11 check for transparency/always-on-top/skip-taskbar/drag, then commit M2 checkpoint
+
+### 2026-06-18 08:10 UTC
+- Agent: main
+- Task: Add persisted grouped/independent widget movement mode and unify drag routing
+- Files changed: `src-tauri/src/config.rs`, `src-tauri/src/main.rs`, `frontend/src/main.js`, `frontend/src/settings.js`, `frontend/tests/settings.test.mjs`, `frontend/tests/widget.test.mjs`, `src-tauri/tests/window_contract.rs`, `roadmap.md`
+- Commands run: `npm test`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Reverted the optional ungrouped mode and fixed the product on a single grouped-layout model; widget dragging still uses the explicit `move_widget_windows` command path, but settings no longer expose a split-mode toggle and config normalization now forces grouped layout for consistent behavior.
+- Next step: Run Linux X11 manual verification for grouped drag, widget on/off compaction, first-paint Pomodoro gauge alignment, and absence of transparent-window remnants.
+
+### 2026-06-18 08:40 UTC
+- Agent: main
+- Task: Finalize Linux X11 rendering stabilization after manual verification
+- Files changed: `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `RENDERING_REFACTOR.md`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: User verified settings visibility, widget compaction, smooth grouped drag, and no ghosting after widget changes/state changes/movement. Stale opacity/filter effects and the default semi-transparent disk were removed because they could leave rectangular text backing artifacts in transparent WebKitGTK windows. Gauge disks now use opaque `rgb(20, 20, 30)` and stale state remains visible through the update badge.
+- Next step: Run one final `git status` review, commit the M3 checkpoint, then start M4 packaging/release work.
+
+### 2026-06-18 09:00 UTC
+- Agent: main + security-privacy-specialist + test-specialist
+- Task: M3 pre-commit security and test review
+- Files changed: `src-tauri/src/config.rs`, `src-tauri/src/dashboard.rs`, `for_specification/poc-result-ubuntu.md`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `git diff --check`
+- Result: Added endpoint validation before config persistence, broadened token-material config detection for token-like keys and secret-shaped strings, emitted sanitized runtime warnings for broad token-file permissions, redacted the remaining local Claude credential path in the Ubuntu PoC note, and confirmed there are no CI-safe test gaps blocking the M3 commit.
+- Next step: Commit M3, then begin M4 packaging/release preparation.
 
 ### 2026-06-11 07:14 UTC
 - Agent: main
@@ -404,6 +454,70 @@
 - Result: Pomodoro button actions now replace only the Pomodoro widget instead of redrawing the full dashboard, reducing transparent WebKit overlap artifacts. Paused state is visually stronger through dimmed ring/text and highlighted resume button. Pomodoro alone uses 12 major tick marks while Claude/Codex keep 8.
 - Next step: Run Linux X11 visual check for Pomodoro button actions, paused-state readability, and Pomodoro-only 12 major ticks.
 
+### 2026-06-16 00:00 UTC
+- Agent: main + subagents
+- Task: Fix Pomodoro button interaction and continuous timing
+- Files changed: `frontend/src/main.js`, `frontend/src/pomodoro.js`, `frontend/src/styles.css`, `frontend/tests/pomodoro.test.mjs`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `git diff -- frontend/src/main.js frontend/src/pomodoro.js frontend/src/styles.css frontend/tests/pomodoro.test.mjs frontend/tests/widget.test.mjs roadmap.md`
+- Result: Pomodoro controls now stay inside the hover region, button clicks are handled from the app root, the timer redraws on a sub-second cadence, and gauge progress is based on the active phase duration instead of a fixed dial.
+- Next step: Run the app and confirm the three Pomodoro buttons work and the ring shrinks smoothly for short durations.
+
+### 2026-06-16 00:00 UTC
+- Agent: main
+- Task: Add Pomodoro end-state blink and paused handoff
+- Files changed: `frontend/src/main.js`, `frontend/src/pomodoro.js`, `frontend/src/widget.js`, `frontend/src/styles.css`, `frontend/tests/pomodoro.test.mjs`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Completed timers now blink for 30 seconds, clicking the widget acknowledges the end state immediately, the next phase stays paused until the user starts it, and Pomodoro controls are now a fixed opaque action row below the gauge rather than a hover overlay.
+- Next step: Run the app and visually verify the blinking end state, the below-gauge button placement, and the paused next-phase handoff.
+
+### 2026-06-16 01:00 UTC
+- Agent: main + main-planner read-only subagent
+- Task: Add M3 settings window and config persistence foundation
+- Files changed: `src-tauri/src/config.rs`, `src-tauri/src/dashboard.rs`, `src-tauri/src/main.rs`, `src-tauri/capabilities/default.json`, `settings.html`, `scripts/build-frontend.mjs`, `frontend/src/settings.js`, `frontend/src/settings.css`, `frontend/tests/settings.test.mjs`, `frontend/src/main.js`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Added a decorated opaque settings window at `settings.html`, opened from the widget context menu via `open_settings_window`, added `get_app_settings`/`save_app_settings`, persisted M3 config fields without token material, normalized partial config files, and updated provider runtime endpoints after settings saves.
+- Next step: Implement notification thresholds using mock-safe tests, then add click-through only after confirming there is a reliable settings recovery path.
+
+### 2026-06-16 01:15 UTC
+- Agent: main + test-specialist read-only subagent
+- Task: Add notification threshold logic
+- Files changed: `frontend/src/notifications.js`, `frontend/tests/notifications.test.mjs`, `frontend/src/main.js`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Added CI-safe threshold event logic for Claude/Codex snapshots, defaulted notifications to `[80, 95]`, deduplicated events by provider/window/threshold/reset, rearmed on `resets_at` changes, ignored degraded snapshots, and dispatched through a thin Notification API wrapper without reading tokens or calling real providers in tests.
+- Next step: Add click-through only with a settings recovery path; then add autostart and final Pomodoro isolation verification.
+
+### 2026-06-16 01:30 UTC
+- Agent: main
+- Task: Add click-through and autostart
+- Files changed: `src-tauri/src/autostart.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/main.rs`, `roadmap.md`
+- Commands run: `cargo fmt --manifest-path src-tauri/Cargo.toml`, `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Added click-through application through Tauri window cursor-event ignoring, opens settings automatically at startup when click-through is enabled as a recovery path, and added OS-native autostart persistence using Linux XDG desktop entries and macOS LaunchAgent plists. Autostart tests use temp paths only and do not touch the real user config.
+- Next step: Run Linux X11 manual verification for settings window, click-through recovery, autostart file creation/removal, notification display, and unchanged transparent widget behavior.
+
+### 2026-06-17 00:00 UTC
+- Agent: main
+- Task: Address settings manual verification feedback
+- Files changed: `frontend/src/main.js`, `frontend/src/pomodoro.js`, `frontend/src/settings.js`, `frontend/src/settings.css`, `frontend/tests/pomodoro.test.mjs`, `frontend/tests/settings.test.mjs`, `frontend/tests/widget.test.mjs`, `src-tauri/src/main.rs`, `roadmap.md`
+- Commands run: `npm test`, `cargo test --manifest-path src-tauri/Cargo.toml`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `npm run build`
+- Result: Settings saves now show visible saving/saved states, the dashboard re-reads settings and applies widget visibility plus Pomodoro focus/break durations within one second, and the settings window refuses to close while click-through is enabled so the user cannot lose the recovery path.
+- Next step: Re-run Linux X11 manual verification for save feedback, widget checkbox application, Pomodoro duration application, and click-through recovery behavior.
+
+### 2026-06-17 00:15 UTC
+- Agent: main
+- Task: Move click-through to experimental and stop rerendering the dashboard on settings changes
+- Files changed: `frontend/src/main.js`, `frontend/src/settings.js`, `frontend/src/settings.css`, `frontend/tests/settings.test.mjs`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Widget visibility now toggles in-place via `is-hidden` instead of replacing the root dashboard HTML, Pomodoro durations update from persisted settings without spawning a new widget layer, and click-through is shown under an Experimental section in the settings window.
+- Next step: Re-run the Linux X11 smoke once, then commit M3 after confirming the new in-place behavior visually.
+
+### 2026-06-17 00:30 UTC
+- Agent: main
+- Task: Remount the dashboard root on settings changes and make click-through explicitly experimental
+- Files changed: `frontend/src/main.js`, `frontend/src/settings.js`, `frontend/tests/settings.test.mjs`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `node --test frontend/tests/settings.test.mjs frontend/tests/widget.test.mjs`, `npm test`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Settings saves now replace the dashboard root node instead of mutating the existing tree, which avoids stale widget layers in transparent WebKit; the settings window now labels click-through as an experimental feature, and tests pass.
+- Next step: Ask for a fresh Linux visual check on widget-checkbox save behavior and confirm the old dashboard layer no longer remains below the new one.
+
 ## Known Issues
 | Issue | Severity | Status | Next Action |
 |---|---|---|---|
@@ -412,14 +526,17 @@
 | Claude refresh host/client metadata is undocumented | High | Resolved by local CLI static analysis | `platform.claude.com/v1/oauth/token` and client metadata from installed Claude CLI 2.1.170; refresh is memory-only and fixture-tested |
 | Claude local smoke returns AUTH_ERROR | Low | Resolved | Fixed numeric `expiresAt` parsing; smoke now returns `NORMAL` |
 | Codex 20-poll smoke is complete | Low | Done | Recorded as WARN throughout; no 429 observed in the captured run |
-| macOS Keychain cannot be verified on current Ubuntu environment | Medium | Open | Implement macOS-gated source with `security` fallback and document manual verification |
+| macOS Keychain cannot be verified on current Ubuntu environment | Medium | Open | Security CLI fallback exists; perform manual macOS Keychain verification during M4 packaging validation. |
 | Real provider bridge Linux visual check | Medium | Resolved | User confirmed the Tauri widget now renders real provider values after enabling `withGlobalTauri`; mock fallback no longer masks runtime invoke failures. |
-| Pomodoro visual verification | Medium | Partially resolved | User confirmed three-widget layout and window behavior; re-check opacity stability after reducing full dashboard rerender from 1s to 60s. |
+| Pomodoro visual verification | Medium | Resolved | User confirmed three-widget layout, grouped drag behavior, widget on/off compaction, and stable opacity after the per-widget window split. |
 | Claude local credential refresh is invalid | Medium | Resolved | User confirmed Claude works after re-authentication; recurring login should not be required while the new refresh token remains valid. |
 | Codex widget is yellow/WARN | Low | Expected | Codex primary 5-hour usage is low, but secondary 7-day usage is 80%; state machine uses the maximum usage window, so WARN/yellow is correct. |
-| Pomodoro controls visual verification | Medium | Open | Verify hover-only toolbar, button click behavior, reset/skip/toggle, and no drag/opacity regressions on Linux X11. |
+| Pomodoro controls visual verification | Medium | Resolved | Tests cover reset/skip/toggle, minute editing, end-state acknowledgement, and provider isolation; user confirmed the current grouped window model is visually stable on Linux X11. |
+| Click-through can block settings access | High | Mitigated | When enabled, widget right-click, drag, and Pomodoro buttons are intentionally unavailable; startup opens the settings window automatically and close is prevented while click-through is enabled. |
+| M3 settings runtime application is partial | Medium | Resolved | Settings persist and endpoints update immediately; notification thresholds are evaluated on provider polling; click-through/autostart/widget toggles/Pomodoro durations apply after save; widget scale is applied through the runtime settings signature. |
+| OS notification display is not manually verified | Medium | Open | Threshold logic and dispatch are tested with a fake Notification API; run a platform smoke during M4 after forcing a mock threshold or reaching a real threshold. |
 | M2 Linux X11 visual verification | High | Resolved | User confirmed transparency, layout, tick visibility, frameless/always-on-top/skip-taskbar, drag, and hover update badge behavior on Linux X11. |
-| M2 visual tuning intentionally diverges from design-reference token literals | Medium | Resolved | Accepted screenshot-style block ticks, stronger bright-background tick contrast, disk radial mask, and disabled hover disk/glow effects as implementation decisions for Linux transparent WebKit. |
+| M2/M3 visual tuning intentionally diverges from design-reference token literals | Medium | Resolved | Accepted screenshot-style block ticks, stronger bright-background tick contrast, opaque disks, fixed Pomodoro controls, and disabled hover disk/glow/stale opacity effects as implementation decisions for Linux transparent WebKit. |
 
 ## Resume Instructions
 If the session is interrupted, resume by:

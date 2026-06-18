@@ -7,6 +7,7 @@ import {
   pomodoroSnapshot,
   setPomodoroMinutes,
   tickPomodoro,
+  updatePomodoroSettings,
 } from '../src/pomodoro.js';
 import { formatRemainingMinutes, renderPomodoroWidget } from '../src/widget.js';
 
@@ -44,7 +45,7 @@ test('resume preserves remaining duration', () => {
 });
 
 test('resume keeps the gauge progress from the paused point', () => {
-  let state = createPomodoroState({ now: START, dialFullMin: 20 });
+  let state = createPomodoroState({ now: START });
   state = applyPomodoroAction(state, 'toggle', new Date('2026-06-12T00:08:00.000Z'));
   const paused = pomodoroSnapshot(state, new Date('2026-06-12T00:08:00.000Z'));
 
@@ -57,6 +58,15 @@ test('resume keeps the gauge progress from the paused point', () => {
   assert.equal(formatRemainingMinutes(resumed.primary.resets_at, new Date('2026-06-12T00:10:00.000Z')), '12');
   assert.equal(later.primary.used_pct, 50);
   assert.equal(formatRemainingMinutes(later.primary.resets_at, new Date('2026-06-12T00:12:00.000Z')), '10');
+});
+
+test('gauge scales against the configured phase duration', () => {
+  let state = createPomodoroState({ now: START, focusMin: 1 });
+  state = tickPomodoro(state, new Date('2026-06-12T00:00:30.000Z'));
+  const snapshot = pomodoroSnapshot(state, new Date('2026-06-12T00:00:30.000Z'));
+
+  assert.equal(snapshot.primary.used_pct, 50);
+  assert.equal(formatRemainingMinutes(snapshot.primary.resets_at, new Date('2026-06-12T00:00:30.000Z')), '1');
 });
 
 test('reset returns current phase to full paused duration', () => {
@@ -93,12 +103,29 @@ test('skip advances break to focus', () => {
   assert.equal(formatRemainingMinutes(snapshot.primary.resets_at, START), '20');
 });
 
-test('timer auto-advances phases on tick', () => {
+test('timer enters a blinking ending state before advancing to the next paused phase', () => {
   let state = createPomodoroState({ now: START });
   state = tickPomodoro(state, new Date('2026-06-12T00:20:00.001Z'));
-  assert.equal(state.phase, 'BREAK');
-  state = tickPomodoro(state, new Date('2026-06-12T00:25:00.002Z'));
   assert.equal(state.phase, 'FOCUS');
+  assert.equal(state.isEnding, true);
+  assert.equal(state.isRunning, false);
+
+  state = tickPomodoro(state, new Date('2026-06-12T00:20:30.002Z'));
+  assert.equal(state.phase, 'BREAK');
+  assert.equal(state.isEnding, false);
+  assert.equal(state.isRunning, false);
+  assert.equal(state.remainingMs, state.durationMs);
+});
+
+test('ending state can be acknowledged before the blink timeout finishes', () => {
+  let state = createPomodoroState({ now: START });
+  state = tickPomodoro(state, new Date('2026-06-12T00:20:00.001Z'));
+  state = applyPomodoroAction(state, 'acknowledge', new Date('2026-06-12T00:20:10.000Z'));
+
+  assert.equal(state.phase, 'BREAK');
+  assert.equal(state.isEnding, false);
+  assert.equal(state.isRunning, false);
+  assert.equal(state.remainingMs, state.durationMs);
 });
 
 test('setting minutes updates the current phase duration and pauses at full time', () => {
@@ -121,6 +148,21 @@ test('setting minutes clamps to a practical local-only range', () => {
 
   state = setPomodoroMinutes(state, 999, START);
   assert.equal(state.settings.focusMin, 180);
+});
+
+test('settings update applies configured phase durations to the active timer', () => {
+  let state = createPomodoroState({ now: START, focusMin: 20, breakMin: 5 });
+  state = updatePomodoroSettings(state, { focusMin: 10, breakMin: 3 }, START);
+  let snapshot = pomodoroSnapshot(state, START);
+
+  assert.equal(state.settings.focusMin, 10);
+  assert.equal(state.settings.breakMin, 3);
+  assert.equal(formatRemainingMinutes(snapshot.primary.resets_at, START), '10');
+
+  state = applyPomodoroAction(state, 'skip', START);
+  snapshot = pomodoroSnapshot(state, START);
+  assert.equal(snapshot.phase, 'BREAK');
+  assert.equal(formatRemainingMinutes(snapshot.primary.resets_at, START), '3');
 });
 
 test('pomodoro module has no provider or network dependencies', async () => {

@@ -11,23 +11,7 @@
   "app": {
     "withGlobalTauri": true,
     "macOSPrivateApi": true,
-    "windows": [
-      {
-        "label": "claude-widget",
-        "title": "Token Dashboard",
-        "width": 500,
-        "height": 180,
-        "minWidth": 500,
-        "minHeight": 180,
-        "resizable": false,
-        "decorations": false,
-        "transparent": true,
-        "alwaysOnTop": true,
-        "skipTaskbar": true,
-        "center": true,
-        "backgroundColor": "#00000000"
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
     }

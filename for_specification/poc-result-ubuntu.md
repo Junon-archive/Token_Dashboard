@@ -3,7 +3,7 @@
 - 세션 타입(XDG_SESSION_TYPE) / 데스크톱 환경 / 모니터 구성: x11 / ubuntu:GNOME / 확인 불가 (`xrandr`: `Can't open display :1`)
 - 도구 버전: claude 2.1.170 / codex-cli 0.139.0 / node v25.6.1 / jq 1.6 / rustc 1.96.0 / cargo 1.96.0
 ## 토큰 저장 위치
-- Claude 파일 존재/권한: `/home/junon/.claude/.credentials.json` 존재, 권한 `600`
+- Claude 파일 존재/권한: `/home/<redacted>/.claude/.credentials.json` 존재, 권한 `600`
 - Claude 구조(키 목록): top-level `["claudeAiOauth","organizationUuid"]`, `claudeAiOauth` keys `["accessToken","refreshToken","expiresAt","scopes","subscriptionType","rateLimitTier"]`
 - Claude access token 상태: `expiresAt` = `2026-06-09T17:39:15Z`로 현재 실행 시각 기준 만료됨
 - Codex auth.json 구조(키 목록)/권한: `/home/<redacted>/.codex/auth.json` 존재, 권한 `600`

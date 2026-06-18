@@ -14,7 +14,6 @@
   --tick: rgba(255, 255, 255, .24);
   --text: #f3f4f6;
   --label: rgba(244, 246, 250, .55);
-  --disk-bg: rgba(20, 21, 26, .52);
   --size: 140px;
   --scale: 1;
   --ease: cubic-bezier(.4, 0, .2, 1);
@@ -47,15 +46,28 @@ body {
 #app {
   display: grid;
   place-items: center;
+  position: relative;
+}
+
+/* [REFACTOR] Single-widget windows should share the same top inset so the Pomodoro gauge does not float higher or lower just because its window is taller. */
+body.single-widget-window {
+  align-items: start;
+  justify-items: center;
+  padding-top: 10px;
+}
+
+body.single-widget-window #app {
+  align-items: start;
+  justify-items: center;
 }
 
 .dashboard {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   gap: 20px;
   width: max-content;
-  height: var(--size);
+  height: auto;
   margin: 0;
 }
 
@@ -67,7 +79,6 @@ body {
   --arc: var(--brand);
   --arc-op: 1;
   --tm: var(--track-main);
-  -webkit-app-region: drag;
   user-select: none;
 }
 
@@ -84,6 +95,21 @@ body {
 .widget.pomodoro {
   --brand: var(--pomodoro-focus);
   --brand-bright: var(--pomodoro-focus-bright);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  height: auto;
+  min-height: calc(var(--size) + 30px);
+}
+
+/* [REFACTOR] Separate the Pomodoro gauge stage from the action row so the buttons stay fixed and do not depend on hover overlays. */
+.pomodoro-stage {
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  flex: 0 0 var(--size);
 }
 
 /* [REFACTOR] Remove backdrop-filter/mask-image so WebKitGTK does not keep a rectangular damage region around the disk. */
@@ -95,7 +121,7 @@ body {
   height: 128px;
   margin: -64px 0 0 -64px;
   border-radius: 50%;
-  background: rgba(20, 20, 30, .85);
+  background: rgb(20, 20, 30);
   border: 0;
 }
 
@@ -113,6 +139,7 @@ svg.gauge-arc {
   height: 100%;
   display: block;
   overflow: visible;
+  pointer-events: none;
   will-change: transform;
 }
 
@@ -183,7 +210,6 @@ svg.gauge-arc {
   font-feature-settings: "tnum";
   text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
   line-height: 1;
-  transition: opacity var(--t-state) var(--ease);
 }
 
 .num {
@@ -308,25 +334,8 @@ svg.gauge-arc {
   }
 }
 
-.widget.stale {
-  filter: grayscale(.55);
-}
-
-.widget.stale .disk {
-  opacity: .62;
-}
-
-.widget.stale .arc-main,
-.widget.stale .arc-sec {
-  opacity: .4;
-}
-
-.widget.stale .num {
-  opacity: .5;
-}
-
 .widget.stale .name {
-  opacity: .45;
+  color: rgba(244, 246, 250, .55);
 }
 
 .widget.stale .update-badge {
@@ -387,6 +396,14 @@ svg.gauge-arc {
   color: rgba(244, 246, 250, .82);
 }
 
+.widget.pomodoro .arc-main,
+.widget.pomodoro .arc-sec {
+  transition:
+    stroke var(--t-state) var(--ease),
+    stroke-dashoffset 250ms linear,
+    opacity var(--t-state) var(--ease);
+}
+
 .widget.pomodoro .lamp {
   pointer-events: none;
 }
@@ -432,19 +449,25 @@ svg.gauge-arc {
 }
 
 .pomodoro-controls {
-  position: absolute;
-  left: 50%;
-  top: 140px;
-  display: none;
+  position: relative;
+  display: flex;
   gap: 5px;
-  transform: translateX(-50%) translateZ(0);
+  min-width: 112px;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 4px;
+  border-radius: 8px;
+  background: rgb(20, 21, 26);
+  transform: translateZ(0);
   will-change: transform;
   transition: none;
+  z-index: 2;
+  pointer-events: auto;
+  contain: layout paint style;
+  isolation: isolate;
+  backface-visibility: hidden;
   -webkit-app-region: no-drag;
-}
-
-.widget.pomodoro.is-hovered .pomodoro-controls {
-  display: flex;
 }
 
 .pomodoro-btn {
@@ -453,7 +476,7 @@ svg.gauge-arc {
   padding: 0 5px;
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 7px;
-  background: rgba(20, 21, 26, .34);
+  background: rgb(20, 21, 26);
   color: rgba(244, 246, 250, .7);
   font: inherit;
   font-size: 8px;
@@ -461,6 +484,10 @@ svg.gauge-arc {
   letter-spacing: .4px;
   text-transform: uppercase;
   cursor: pointer;
+  pointer-events: auto;
+  contain: paint;
+  isolation: isolate;
+  backface-visibility: hidden;
   -webkit-app-region: no-drag;
 }
 
@@ -472,4 +499,27 @@ svg.gauge-arc {
 .widget.pomodoro.paused .pomodoro-btn.toggle {
   border-color: rgba(240, 86, 61, .34);
   color: var(--pomodoro-focus-bright);
+}
+
+.widget.pomodoro.ending .arc-main,
+.widget.pomodoro.ending .num,
+.widget.pomodoro.ending .name {
+  animation: pomodoroEndBlink 900ms steps(1, end) infinite;
+}
+
+.widget.pomodoro.ending .pomodoro-btn.toggle {
+  border-color: rgba(240, 86, 61, .48);
+  color: var(--pomodoro-focus-bright);
+}
+
+@keyframes pomodoroEndBlink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: .28;
+  }
 }

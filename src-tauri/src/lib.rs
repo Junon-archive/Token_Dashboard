@@ -1,3 +1,4 @@
+pub mod autostart;
 pub mod backoff;
 pub mod config;
 pub mod dashboard;

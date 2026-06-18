@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default permissions for the Claude widget window.",
-  "windows": ["claude-widget"],
+  "description": "Default permissions for the widget and settings windows.",
+  "windows": ["claude-widget", "codex-widget", "pomodoro-widget", "settings"],
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging"
