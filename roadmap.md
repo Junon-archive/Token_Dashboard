@@ -3,9 +3,9 @@
 ## Current Status
 - Current milestone: M4 — Packaging and Release
 - Current task: Start packaging/release preparation from committed M3 baseline
-- Last completed task: Removed v1 desktop notification runtime and settings surface; usage is checked through gauges only
-- Last command run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
-- Last test result: Passed — frontend Pomodoro/settings/widget tests and Rust 58 lib tests, 4 smoke tests, 5 contract tests
+- Last completed task: Hid click-through from the settings surface while preserving existing config/runtime compatibility
+- Last command run: `npm test`, `npm run build`
+- Last test result: Passed — frontend Pomodoro/settings/widget tests
 - Next recommended command: Review packaging targets and start M4 with CI/package metadata planning
 - Blocking issue: None for M3. macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled during M4 packaging validation.
 - Git status note: `.codex/` remains local untracked tooling config and should not be committed. The screenshot reference file is local input and is not required for runtime.
@@ -23,6 +23,7 @@
 - Updated at: 2026-06-19 00:15 UTC
 - Updated at: 2026-06-19 00:30 UTC
 - Updated at: 2026-06-19 01:10 UTC
+- Updated at: 2026-06-19 01:25 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -74,6 +75,7 @@
 | 2026-06-18 | Use opaque gauge disks and avoid stale opacity dimming | Linux WebKitGTK transparent windows can leave rectangular text backing layers when text/disk/arc opacity changes; stale state is now shown via update badge while gauge paint remains opaque | `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `RENDERING_REFACTOR.md` |
 | 2026-06-18 | Strengthen M3 pre-commit security guardrails | Config writes now reject invalid endpoint overrides before persistence, token-like keys/values are detected more broadly, runtime token-file permission warnings are sanitized, and PoC local home paths are redacted before M4 docs work | `src-tauri/src/config.rs`, `src-tauri/src/dashboard.rs`, `for_specification/poc-result-ubuntu.md`, `roadmap.md` |
 | 2026-06-19 | Remove v1 desktop notifications from the product surface | Gauge state is sufficient for current use; notification settings and Notification API dispatch add platform validation cost without clear value before M4 | `SPEC.md`, `frontend/src/main.js`, `frontend/src/settings.js`, `frontend/tests/settings.test.mjs`, `roadmap.md` |
+| 2026-06-19 | Hide click-through from settings without deleting runtime compatibility | The feature is not reliable enough to expose, but removing Rust config/window logic now would add unnecessary M4 risk; saves preserve existing `click_through` values instead of showing a broken control | `SPEC.md`, `frontend/src/settings.js`, `frontend/tests/settings.test.mjs`, `roadmap.md` |
 
 ## Milestone Checklist
 
@@ -116,7 +118,7 @@
 - [x] Add settings window
 - [x] Add config persistence
 - [x] Remove notification settings/runtime from v1 surface
-- [x] Add click-through
+- [x] Hide click-through from settings surface
 - [x] Add autostart
 - [x] Add Pomodoro isolation test
 - [x] Commit M3
@@ -288,7 +290,7 @@
 - Agent: main
 - Task: Remove Pomodoro paused translucency before M4
 - Files changed: `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
-- Commands run: `npm test`
+- Commands run: `npm test`, `npm run build`
 - Result: Pomodoro paused state no longer dims the disk, number, arc, or track via opacity changes; it keeps opaque gauge paint to avoid the same Linux transparent WebKit backing-box artifacts already removed from Claude/Codex.
 - Next step: Commit this M3 polish fix, then start M4 packaging/release work.
 
@@ -331,6 +333,14 @@
 - Commands run: `npm test`, `npm run build`
 - Result: Settings no longer shows Notifications, dashboard runtime no longer imports or dispatches Notification API events, and v1 spec now states usage is checked through gauges only. Rust config compatibility remains in place for existing config files.
 - Next step: Run Rust tests for config compatibility, then commit this scope reduction before M4 packaging work.
+
+### 2026-06-19 01:25 UTC
+- Agent: main
+- Task: Hide click-through from settings surface
+- Files changed: `SPEC.md`, `frontend/src/settings.js`, `frontend/tests/settings.test.mjs`, `roadmap.md`
+- Commands run: `npm test`
+- Result: The settings window no longer shows the Experimental features section or Click through toggle. The hidden `click_through` config value is preserved on save so existing config files are not silently rewritten.
+- Next step: Commit the settings-surface cleanup, then continue M4 packaging work.
 
 ### 2026-06-11 07:14 UTC
 - Agent: main
@@ -596,8 +606,8 @@
 | Claude local credential refresh is invalid | Medium | Resolved | User confirmed Claude works after re-authentication; recurring login should not be required while the new refresh token remains valid. |
 | Codex widget is yellow/WARN | Low | Expected | Codex primary 5-hour usage is low, but secondary 7-day usage is 80%; state machine uses the maximum usage window, so WARN/yellow is correct. |
 | Pomodoro controls visual verification | Medium | Resolved | Tests cover reset/skip/toggle, minute editing, end-state acknowledgement, and provider isolation; user confirmed the current grouped window model is visually stable on Linux X11. |
-| Click-through can block settings access | High | Mitigated | When enabled, widget right-click, drag, and Pomodoro buttons are intentionally unavailable; startup opens the settings window automatically and close is prevented while click-through is enabled. |
-| M3 settings runtime application is partial | Medium | Resolved | Settings persist and endpoints update immediately; click-through/autostart/widget toggles/Pomodoro durations apply after save; widget scale is applied through the runtime settings signature. |
+| Click-through can block settings access | High | Hidden from v1 UI | Runtime/config compatibility remains, but the settings window no longer exposes the broken control. Existing `click_through` values are preserved on save. |
+| M3 settings runtime application is partial | Medium | Resolved | Settings persist and endpoints update immediately; autostart/widget toggles/Pomodoro durations apply after save; widget scale is applied through the runtime settings signature. |
 | OS notification display is not manually verified | Low | Removed from v1 | Desktop notifications were removed from the v1 product surface; usage state is now gauge-only. |
 | M2 Linux X11 visual verification | High | Resolved | User confirmed transparency, layout, tick visibility, frameless/always-on-top/skip-taskbar, drag, and hover update badge behavior on Linux X11. |
 | M2/M3 visual tuning intentionally diverges from design-reference token literals | Medium | Resolved | Accepted screenshot-style block ticks, stronger bright-background tick contrast, opaque disks, fixed Pomodoro controls, and disabled hover disk/glow/stale opacity effects as implementation decisions for Linux transparent WebKit. |

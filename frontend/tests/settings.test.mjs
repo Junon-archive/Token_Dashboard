@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import {
+  collectSettingsFromForm,
   DEFAULT_APP_SETTINGS,
   loadAppSettings,
   normalizeSettings,
@@ -29,10 +30,7 @@ test('renders SPEC UI-9 settings controls with collapsed advanced endpoints', ()
   assert.match(html, /name="endpoints\.claude_beta_header"/);
   assert.match(html, /name="endpoints\.codex_base"/);
   assert.match(html, /name="endpoints\.codex_usage_path"/);
-  assert.match(html, /<details class="settings-section settings-advanced settings-experimental">/);
-  assert.match(html, /<summary>Experimental features<\/summary>/);
-  assert.match(html, /id="click-through" name="click-through" type="checkbox"/);
-  assert.match(html, /Experimental: click-through makes the widget ignore mouse input/);
+  assert.doesNotMatch(html, /Experimental features|click-through|Click through/);
 });
 
 test('settings page auto-initializes the settings app', async () => {
@@ -101,9 +99,43 @@ test('save button has visible saving and saved states', async () => {
   assert.match(source, /saveButton\.disabled = true;/);
   assert.match(source, /saveButton\.textContent = 'Saving\.\.\.'/);
   assert.match(source, /saveButton\.classList\.add\('is-saved'\)/);
-  assert.match(source, /Experimental: click-through makes the widget ignore mouse input/);
+  assert.match(source, /status\.textContent = 'Saved';/);
+  assert.doesNotMatch(source, /use this settings window to turn it off/);
   assert.match(css, /\.settings-save:active,/);
   assert.match(css, /\.settings-save\.is-saved/);
+});
+
+test('hidden click-through setting is preserved on save', () => {
+  const html = renderSettingsForm({ click_through: true });
+  assert.doesNotMatch(html, /click-through|Click through/);
+
+  const template = {
+    innerHTML: html,
+    querySelector: (selector) => {
+      if (selector === '[data-settings-form]') {
+        return template.form;
+      }
+      return null;
+    },
+  };
+  template.form = {
+    elements: {
+      'widget-claude': { checked: true },
+      'widget-codex': { checked: true },
+      'widget-pomodoro': { checked: true },
+      'widget-scale': { value: '1' },
+      'polling-interval-sec': { value: '180' },
+      autostart: { checked: false },
+      'pomodoro-focus-min': { value: '20' },
+      'pomodoro-break-min': { value: '5' },
+    },
+  };
+
+  const saved = normalizeSettings({
+    ...DEFAULT_APP_SETTINGS,
+    ...collectSettingsFromForm(template.form, { ...DEFAULT_APP_SETTINGS, click_through: true }),
+  });
+  assert.equal(saved.click_through, true);
 });
 
 test('normalization strips settings outside the frontend form contract', () => {

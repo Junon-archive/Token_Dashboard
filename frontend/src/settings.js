@@ -168,13 +168,6 @@ export function renderSettingsForm(settings = DEFAULT_APP_SETTINGS) {
         <summary>Advanced endpoints</summary>
         <div class="settings-grid">${endpointControls}</div>
       </details>
-      <details class="settings-section settings-advanced settings-experimental">
-        <summary>Experimental features</summary>
-        <div class="settings-grid">
-          ${toggleRow('click-through', 'Click through', normalized.click_through)}
-        </div>
-        <p class="settings-hint">Experimental: click-through makes the widget ignore mouse input. Keep this settings window open to turn it off.</p>
-      </details>
       <p class="settings-status" role="status" data-settings-status></p>
     </form>
   </main>`;
@@ -203,7 +196,7 @@ export function collectSettingsFromForm(form, previousSettings = DEFAULT_APP_SET
       ...previous.polling,
       interval_sec: numberValue(form, 'polling-interval-sec', previous.polling.interval_sec),
     },
-    click_through: checkboxValue(form, 'click-through'),
+    click_through: previous.click_through,
     autostart: checkboxValue(form, 'autostart'),
     pomodoro: {
       ...previous.pomodoro,
@@ -241,9 +234,7 @@ export async function initSettingsApp(root = document.querySelector('#app'), tar
       saveButton.classList.remove('is-saving');
       saveButton.classList.add('is-saved');
       saveButton.textContent = 'Saved';
-      status.textContent = currentSettings.click_through
-        ? 'Saved. Click-through is on; use this settings window to turn it off.'
-        : 'Saved';
+      status.textContent = 'Saved';
       setTimeout(() => {
         saveButton.classList.remove('is-saved');
         saveButton.textContent = 'Save';

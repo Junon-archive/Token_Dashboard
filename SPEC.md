@@ -341,7 +341,7 @@ PoC에서 Ubuntu의 Claude access token이 만료 상태였다(§2.4-2). 선택�
 | UI-4 | 로그인 시 자동 시작 | 옵션 제공, **기본 off** |
 | UI-5 | 마지막 갱신 시각 표시 | hover 또는 stale 배지로 "Nm ago" 노출 |
 | UI-6 | 데스크톱 알림 | v1에서는 제공하지 않음. 사용률은 게이지 상태로만 확인 |
-| UI-7 | 클릭 통과(click-through) | 설정 토글, 기본 off. on 시 위젯이 마우스 이벤트를 투과 |
+| UI-7 | 클릭 통과(click-through) | v1 설정 화면에서는 노출하지 않음. 기존 config 호환 필드는 유지 |
 | UI-8 | 드래그 이동 | `-webkit-app-region: drag` (PoC macOS 검증, Linux는 M2에서 육안 검증 §2.4-9) |
 | UI-9 | 설정 화면 | 별도 일반 창(decorations 있는 표준 창). 항목: 위젯 토글 3종, 폴링 주기, 위젯 스케일, 클릭 통과, 자동 시작, 뽀모도로 시간, 엔드포인트 오버라이드(고급, 접힘) |
 
