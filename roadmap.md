@@ -1,13 +1,13 @@
 # Token Dashboard Roadmap
 
 ## Current Status
-- Current milestone: M3 — Three Widgets and Settings
-- Current task: Final M3 documentation and pre-commit verification after Linux X11 rendering stabilization
-- Last completed task: Stabilized per-widget rendering with always-grouped layout, smooth command-based drag, automatic enabled-widget compaction, and opaque gauge disks
-- Last command run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`
-- Last test result: Passed — frontend notifications/Pomodoro/settings/widget tests and Rust 58 lib tests, 4 smoke tests, 5 contract tests
-- Next recommended command: `cargo run --manifest-path src-tauri/Cargo.toml --bin token-dashboard`
-- Blocking issue: None for M2. macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled before declaring cross-platform provider integration complete.
+- Current milestone: M4 — Packaging and Release
+- Current task: Start packaging/release preparation from committed M3 baseline
+- Last completed task: Committed M3 widgets/settings checkpoint as `27fa9e1 feat: complete M3 widgets and settings`
+- Last command run: `git commit -m "feat: complete M3 widgets and settings"`, `git status --short`, `git log --oneline --decorate -3`
+- Last test result: Passed before commit — frontend notifications/Pomodoro/settings/widget tests and Rust 58 lib tests, 4 smoke tests, 5 contract tests
+- Next recommended command: Review packaging targets and start M4 with CI/package metadata planning
+- Blocking issue: None for M3. macOS Keychain Security framework first path and OS notification display remain unverified on Ubuntu and should be handled during M4 packaging validation.
 - Git status note: `.codex/` remains local untracked tooling config and should not be committed. The screenshot reference file is local input and is not required for runtime.
 - Updated at: 2026-06-15 10:25 UTC
 - Updated at: 2026-06-16 00:00 UTC
@@ -16,6 +16,7 @@
 - Updated at: 2026-06-17 03:30 UTC
 - Updated at: 2026-06-18 08:10 UTC
 - Updated at: 2026-06-18 08:40 UTC
+- Updated at: 2026-06-18 09:20 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -111,7 +112,7 @@
 - [x] Add click-through
 - [x] Add autostart
 - [x] Add Pomodoro isolation test
-- [ ] Commit M3
+- [x] Commit M3
 
 ### M4 — Packaging and Release
 - [ ] Add GitHub Actions
@@ -267,6 +268,14 @@
 - Commands run: `npm test`, `npm run build`, `cargo test --manifest-path src-tauri/Cargo.toml`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `git diff --check`
 - Result: Added endpoint validation before config persistence, broadened token-material config detection for token-like keys and secret-shaped strings, emitted sanitized runtime warnings for broad token-file permissions, redacted the remaining local Claude credential path in the Ubuntu PoC note, and confirmed there are no CI-safe test gaps blocking the M3 commit.
 - Next step: Commit M3, then begin M4 packaging/release preparation.
+
+### 2026-06-18 09:20 UTC
+- Agent: main
+- Task: Commit M3 checkpoint and prepare M4 handoff
+- Files changed: `roadmap.md`
+- Commands run: `git commit -m "feat: complete M3 widgets and settings"`, `git status --short`, `git log --oneline --decorate -3`
+- Result: M3 was committed as `27fa9e1 feat: complete M3 widgets and settings`. The remaining untracked files are local `.codex/` tooling and local visual/debug reference images that are intentionally not part of the runtime commit.
+- Next step: Start M4 packaging and release work: GitHub Actions, Ubuntu deb/AppImage, macOS dmg, README/troubleshooting/release notes, plus platform smoke checks for macOS Keychain and OS notification display.
 
 ### 2026-06-11 07:14 UTC
 - Agent: main
