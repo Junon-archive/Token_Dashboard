@@ -336,7 +336,11 @@ function updatePomodoroWidget(now = new Date()) {
     ref.number.textContent = formatRemainingMinutes(snapshot.primary?.resets_at, now);
   }
   if (ref.label) {
-    ref.label.textContent = snapshot.phase === 'BREAK' ? 'Break' : 'Focus';
+    ref.label.textContent = snapshot.state === 'PAUSED'
+      ? 'Paused'
+      : snapshot.phase === 'BREAK'
+        ? 'Break'
+        : 'Focus';
   }
   if (ref.toggle) {
     ref.toggle.classList.toggle('is-running', snapshot.state === 'FOCUS' || snapshot.state === 'BREAK');

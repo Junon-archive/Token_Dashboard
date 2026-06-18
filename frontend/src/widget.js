@@ -61,7 +61,7 @@ export function visualClassForSnapshot(snapshot) {
     case 'BREAK':
       return 'break';
     case 'PAUSED':
-      return 'paused';
+      return snapshot.phase === 'BREAK' ? 'paused break' : 'paused focus';
     case 'ENDING':
       return 'ending';
     default:

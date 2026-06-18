@@ -384,6 +384,14 @@ svg.gauge-arc {
   --tm: var(--track-main);
 }
 
+.widget.pomodoro.paused.focus {
+  --arc: #9b3729;
+}
+
+.widget.pomodoro.paused.break {
+  --arc: #3f7d60;
+}
+
 .widget.pomodoro.paused .name {
   color: rgba(244, 246, 250, .82);
 }

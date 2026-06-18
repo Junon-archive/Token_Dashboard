@@ -20,6 +20,7 @@
 - Updated at: 2026-06-18 09:35 UTC
 - Updated at: 2026-06-18 09:50 UTC
 - Updated at: 2026-06-18 10:05 UTC
+- Updated at: 2026-06-19 00:15 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -303,6 +304,14 @@
 - Commands run: `npm run build`, `npm test`, `cargo test --manifest-path src-tauri/Cargo.toml`
 - Result: Found the visual check was still loading stale `dist` assets because direct `cargo run --manifest-path src-tauri/Cargo.toml` does not execute Tauri CLI `beforeBuildCommand`. The Rust build script now runs `npm run build` when frontend inputs change, so direct Cargo runs use the latest UI assets.
 - Next step: Re-run the Linux X11 Pomodoro paused visual check.
+
+### 2026-06-19 00:15 UTC
+- Agent: main
+- Task: Restore explicit Pomodoro paused affordance without translucency
+- Files changed: `frontend/src/main.js`, `frontend/src/styles.css`, `frontend/src/widget.js`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`
+- Result: Pomodoro paused state again shows a darker phase-specific ring and the center label says `Paused`, while disk/number opacity dimming and the paused repaint loop remain disabled.
+- Next step: Re-run the Linux X11 visual check for paused Pomodoro: darker ring, `Paused` label, and no transparent-looking disk.
 
 ### 2026-06-11 07:14 UTC
 - Agent: main

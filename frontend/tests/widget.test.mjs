@@ -156,7 +156,9 @@ test('renders Pomodoro break and paused states without critical pulse', async ()
   const css = await readFile(new URL('../src/styles.css', import.meta.url), 'utf8');
 
   assert.match(renderPomodoroWidget({ ...base, state: 'BREAK', phase: 'BREAK' }, { now: NOW }), /aria-label="Start focus"/);
-  assert.match(renderPomodoroWidget({ ...base, state: 'PAUSED', phase: 'FOCUS', action_label: 'Resume' }, { now: NOW }), /class="widget pomodoro paused"/);
+  assert.match(renderPomodoroWidget({ ...base, state: 'PAUSED', phase: 'FOCUS', action_label: 'Resume' }, { now: NOW }), /class="widget pomodoro paused focus"/);
+  assert.match(renderPomodoroWidget({ ...base, state: 'PAUSED', phase: 'FOCUS', action_label: 'Resume' }, { now: NOW }), /<span class="name">Paused<\/span>/);
+  assert.match(renderPomodoroWidget({ ...base, state: 'PAUSED', phase: 'BREAK', action_label: 'Resume' }, { now: NOW }), /class="widget pomodoro paused break"/);
   assert.match(renderPomodoroWidget({ ...base, state: 'PAUSED', phase: 'FOCUS', action_label: 'Resume' }, { now: NOW }), /aria-label="Resume timer"/);
   assert.match(renderPomodoroWidget({ ...base, state: 'PAUSED', phase: 'FOCUS', action_label: 'Resume' }, { now: NOW }), />Resume<\/button>/);
   assert.match(renderPomodoroWidget({ ...base, state: 'ENDING', phase: 'FOCUS', action_label: 'Start' }, { now: NOW }), /class="widget pomodoro ending"/);
@@ -339,6 +341,8 @@ test('Pomodoro controls sit below the gauge and are excluded from window drag', 
   assert.match(css, /\.pomodoro-minute-input\s*\{[^}]*display: block;/s);
   assert.match(css, /\.pomodoro-minute-input\s*\{[^}]*-webkit-app-region: no-drag;/s);
   assert.match(css, /\.widget\.pomodoro\.paused\s*\{[^}]*--arc-op: 1;/s);
+  assert.match(css, /\.widget\.pomodoro\.paused\.focus\s*\{[^}]*--arc: #9b3729;/s);
+  assert.match(css, /\.widget\.pomodoro\.paused\.break\s*\{[^}]*--arc: #3f7d60;/s);
   assert.doesNotMatch(css, /\.widget\.pomodoro\.paused \.disk\s*\{[^}]*opacity:/s);
   assert.doesNotMatch(css, /\.widget\.pomodoro\.paused \.num\s*\{[^}]*opacity:/s);
   assert.match(css, /\.widget\.pomodoro\.paused \.pomodoro-btn\.toggle\s*\{/);
@@ -353,6 +357,7 @@ test('Pomodoro controls sit below the gauge and are excluded from window drag', 
   assert.match(js, /handlePomodoroAction\(actionButton\.dataset\.pomodoroAction\)/);
   assert.match(js, /setInterval\(updatePomodoroTime, 250\)/);
   assert.match(js, /function updatePomodoroTime\(\)\s*\{\s*if \(!pomodoro\.isRunning && !pomodoro\.isEnding\) \{\s*return;\s*\}\s*updatePomodoroWidget\(new Date\(\)\);\s*\}/);
+  assert.match(js, /snapshot\.state === 'PAUSED'[\s\S]*\? 'Paused'/);
   assert.match(js, /relatedTarget/);
   assert.match(js, /pomodoro\.state === 'ENDING'/);
   assert.match(js, /ref\.toggle\.textContent !== snapshot\.action_label/);
