@@ -445,6 +445,9 @@ async function reloadAppSettings() {
 }
 
 function updatePomodoroTime() {
+  if (!pomodoro.isRunning && !pomodoro.isEnding) {
+    return;
+  }
   updatePomodoroWidget(new Date());
 }
 

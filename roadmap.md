@@ -18,6 +18,7 @@
 - Updated at: 2026-06-18 08:40 UTC
 - Updated at: 2026-06-18 09:20 UTC
 - Updated at: 2026-06-18 09:35 UTC
+- Updated at: 2026-06-18 09:50 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -285,6 +286,14 @@
 - Commands run: `npm test`
 - Result: Pomodoro paused state no longer dims the disk, number, arc, or track via opacity changes; it keeps opaque gauge paint to avoid the same Linux transparent WebKit backing-box artifacts already removed from Claude/Codex.
 - Next step: Commit this M3 polish fix, then start M4 packaging/release work.
+
+### 2026-06-18 09:50 UTC
+- Agent: main
+- Task: Stop idle Pomodoro repaint loop in paused state
+- Files changed: `frontend/src/main.js`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`
+- Result: Confirmed the remaining likely cause was not OS window opacity or stale mapping; Pomodoro stayed `PAUSED` but still called `updatePomodoroWidget()` every 250ms. The periodic repaint now returns immediately while Pomodoro is paused and only continues during running or ending states.
+- Next step: Run one Linux X11 visual check for paused Pomodoro remaining opaque over time, then start M4 packaging/release work.
 
 ### 2026-06-11 07:14 UTC
 - Agent: main
