@@ -338,7 +338,9 @@ test('Pomodoro controls sit below the gauge and are excluded from window drag', 
   assert.match(css, /\.gauge-label \.num:focus-visible\s*\{/);
   assert.match(css, /\.pomodoro-minute-input\s*\{[^}]*display: block;/s);
   assert.match(css, /\.pomodoro-minute-input\s*\{[^}]*-webkit-app-region: no-drag;/s);
-  assert.match(css, /\.widget\.pomodoro\.paused \.num\s*\{[^}]*opacity: \.58;/s);
+  assert.match(css, /\.widget\.pomodoro\.paused\s*\{[^}]*--arc-op: 1;/s);
+  assert.doesNotMatch(css, /\.widget\.pomodoro\.paused \.disk\s*\{[^}]*opacity:/s);
+  assert.doesNotMatch(css, /\.widget\.pomodoro\.paused \.num\s*\{[^}]*opacity:/s);
   assert.match(css, /\.widget\.pomodoro\.paused \.pomodoro-btn\.toggle\s*\{/);
   assert.match(css, /\.widget\.pomodoro \.arc-main[\s\S]*stroke-dashoffset 250ms linear,/);
   assert.match(css, /\.widget\.pomodoro\.ending \.arc-main[\s\S]*animation: pomodoroEndBlink 900ms steps\(1, end\) infinite;/s);

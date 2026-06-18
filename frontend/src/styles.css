@@ -380,16 +380,8 @@ svg.gauge-arc {
 }
 
 .widget.pomodoro.paused {
-  --arc-op: .3;
-  --tm: rgba(255, 255, 255, .08);
-}
-
-.widget.pomodoro.paused .disk {
-  opacity: .66;
-}
-
-.widget.pomodoro.paused .num {
-  opacity: .58;
+  --arc-op: 1;
+  --tm: var(--track-main);
 }
 
 .widget.pomodoro.paused .name {

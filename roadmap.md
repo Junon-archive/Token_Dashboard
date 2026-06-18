@@ -17,6 +17,7 @@
 - Updated at: 2026-06-18 08:10 UTC
 - Updated at: 2026-06-18 08:40 UTC
 - Updated at: 2026-06-18 09:20 UTC
+- Updated at: 2026-06-18 09:35 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -276,6 +277,14 @@
 - Commands run: `git commit -m "feat: complete M3 widgets and settings"`, `git status --short`, `git log --oneline --decorate -3`
 - Result: M3 was committed as `27fa9e1 feat: complete M3 widgets and settings`. The remaining untracked files are local `.codex/` tooling and local visual/debug reference images that are intentionally not part of the runtime commit.
 - Next step: Start M4 packaging and release work: GitHub Actions, Ubuntu deb/AppImage, macOS dmg, README/troubleshooting/release notes, plus platform smoke checks for macOS Keychain and OS notification display.
+
+### 2026-06-18 09:35 UTC
+- Agent: main
+- Task: Remove Pomodoro paused translucency before M4
+- Files changed: `frontend/src/styles.css`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`
+- Result: Pomodoro paused state no longer dims the disk, number, arc, or track via opacity changes; it keeps opaque gauge paint to avoid the same Linux transparent WebKit backing-box artifacts already removed from Claude/Codex.
+- Next step: Commit this M3 polish fix, then start M4 packaging/release work.
 
 ### 2026-06-11 07:14 UTC
 - Agent: main
