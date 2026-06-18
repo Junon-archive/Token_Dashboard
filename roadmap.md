@@ -19,6 +19,7 @@
 - Updated at: 2026-06-18 09:20 UTC
 - Updated at: 2026-06-18 09:35 UTC
 - Updated at: 2026-06-18 09:50 UTC
+- Updated at: 2026-06-18 10:05 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -294,6 +295,14 @@
 - Commands run: `npm test`
 - Result: Confirmed the remaining likely cause was not OS window opacity or stale mapping; Pomodoro stayed `PAUSED` but still called `updatePomodoroWidget()` every 250ms. The periodic repaint now returns immediately while Pomodoro is paused and only continues during running or ending states.
 - Next step: Run one Linux X11 visual check for paused Pomodoro remaining opaque over time, then start M4 packaging/release work.
+
+### 2026-06-18 10:05 UTC
+- Agent: main
+- Task: Prevent stale frontend assets during direct `cargo run`
+- Files changed: `src-tauri/build.rs`, `roadmap.md`
+- Commands run: `npm run build`, `npm test`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: Found the visual check was still loading stale `dist` assets because direct `cargo run --manifest-path src-tauri/Cargo.toml` does not execute Tauri CLI `beforeBuildCommand`. The Rust build script now runs `npm run build` when frontend inputs change, so direct Cargo runs use the latest UI assets.
+- Next step: Re-run the Linux X11 Pomodoro paused visual check.
 
 ### 2026-06-11 07:14 UTC
 - Agent: main
