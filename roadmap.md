@@ -3,9 +3,9 @@
 ## Current Status
 - Current milestone: M4 — Packaging and Release
 - Current task: Start packaging/release preparation from committed M3 baseline
-- Last completed task: Hid click-through from the settings surface while preserving existing config/runtime compatibility
-- Last command run: `npm test`, `npm run build`
-- Last test result: Passed — frontend Pomodoro/settings/widget tests
+- Last completed task: Added a Settings `Quit` button so users can terminate the frameless/skip-taskbar widget app
+- Last command run: `npm test`, `cargo test --manifest-path src-tauri/Cargo.toml`, `npm run build`
+- Last test result: Passed — frontend Pomodoro/settings/widget tests and Rust 58 lib tests, 4 smoke tests, 5 contract tests
 - Next recommended command: Review packaging targets and start M4 with CI/package metadata planning
 - Blocking issue: None for M3. macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled during M4 packaging validation.
 - Git status note: `.codex/` remains local untracked tooling config and should not be committed. The screenshot reference file is local input and is not required for runtime.
@@ -24,6 +24,7 @@
 - Updated at: 2026-06-19 00:30 UTC
 - Updated at: 2026-06-19 01:10 UTC
 - Updated at: 2026-06-19 01:25 UTC
+- Updated at: 2026-06-19 01:45 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -76,6 +77,7 @@
 | 2026-06-18 | Strengthen M3 pre-commit security guardrails | Config writes now reject invalid endpoint overrides before persistence, token-like keys/values are detected more broadly, runtime token-file permission warnings are sanitized, and PoC local home paths are redacted before M4 docs work | `src-tauri/src/config.rs`, `src-tauri/src/dashboard.rs`, `for_specification/poc-result-ubuntu.md`, `roadmap.md` |
 | 2026-06-19 | Remove v1 desktop notifications from the product surface | Gauge state is sufficient for current use; notification settings and Notification API dispatch add platform validation cost without clear value before M4 | `SPEC.md`, `frontend/src/main.js`, `frontend/src/settings.js`, `frontend/tests/settings.test.mjs`, `roadmap.md` |
 | 2026-06-19 | Hide click-through from settings without deleting runtime compatibility | The feature is not reliable enough to expose, but removing Rust config/window logic now would add unnecessary M4 risk; saves preserve existing `click_through` values instead of showing a broken control | `SPEC.md`, `frontend/src/settings.js`, `frontend/tests/settings.test.mjs`, `roadmap.md` |
+| 2026-06-19 | Add explicit app quit path in Settings | Frameless always-on-top widgets are hidden from the taskbar, so packaged users need a discoverable shutdown path that does not rely on terminal process management | `SPEC.md`, `src-tauri/src/main.rs`, `frontend/src/settings.js`, `frontend/src/settings.css`, `frontend/tests/settings.test.mjs`, `src-tauri/tests/window_contract.rs`, `roadmap.md` |
 
 ## Milestone Checklist
 
@@ -298,7 +300,7 @@
 - Agent: main
 - Task: Stop idle Pomodoro repaint loop in paused state
 - Files changed: `frontend/src/main.js`, `frontend/tests/widget.test.mjs`, `roadmap.md`
-- Commands run: `npm test`
+- Commands run: `npm test`, `npm run build`
 - Result: Confirmed the remaining likely cause was not OS window opacity or stale mapping; Pomodoro stayed `PAUSED` but still called `updatePomodoroWidget()` every 250ms. The periodic repaint now returns immediately while Pomodoro is paused and only continues during running or ending states.
 - Next step: Run one Linux X11 visual check for paused Pomodoro remaining opaque over time, then start M4 packaging/release work.
 
@@ -341,6 +343,14 @@
 - Commands run: `npm test`
 - Result: The settings window no longer shows the Experimental features section or Click through toggle. The hidden `click_through` config value is preserved on save so existing config files are not silently rewritten.
 - Next step: Commit the settings-surface cleanup, then continue M4 packaging work.
+
+### 2026-06-19 01:45 UTC
+- Agent: main
+- Task: Add explicit app quit control before M4 packaging
+- Files changed: `SPEC.md`, `src-tauri/src/main.rs`, `frontend/src/settings.js`, `frontend/src/settings.css`, `frontend/tests/settings.test.mjs`, `src-tauri/tests/window_contract.rs`, `roadmap.md`
+- Commands run: `npm test`, `cargo test --manifest-path src-tauri/Cargo.toml`, `npm run build`
+- Result: Settings now has a `Quit` button wired to a `quit_app` Tauri command that exits the app. Tests cover the button render, invoke path, and Rust command registration.
+- Next step: Commit the quit control, then continue M4 packaging work.
 
 ### 2026-06-11 07:14 UTC
 - Agent: main

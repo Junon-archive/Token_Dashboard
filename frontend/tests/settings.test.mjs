@@ -14,6 +14,8 @@ test('renders SPEC UI-9 settings controls with collapsed advanced endpoints', ()
   const html = renderSettingsForm();
 
   assert.match(html, /<form class="settings-form" data-settings-form>/);
+  assert.match(html, /<button class="settings-quit" type="button" data-quit-app>Quit<\/button>/);
+  assert.match(html, /<button class="settings-save" type="submit">Save<\/button>/);
   assert.match(html, /id="widget-claude" name="widget-claude" type="checkbox" checked/);
   assert.match(html, /id="widget-codex" name="widget-codex" type="checkbox" checked/);
   assert.match(html, /id="widget-pomodoro" name="widget-pomodoro" type="checkbox" checked/);
@@ -41,6 +43,52 @@ test('settings page auto-initializes the settings app', async () => {
   assert.match(html, /<script type="module" src="\.\/frontend\/src\/settings\.js"><\/script>/);
   assert.match(source, /if \(typeof document !== 'undefined'\) \{\s*initSettingsApp\(\);/s);
   assert.match(buildScript, /cp\('settings\.html', 'dist\/settings\.html'\)/);
+});
+
+test('settings quit button invokes desktop quit command', async () => {
+  const calls = [];
+  const listeners = {};
+  const root = {
+    innerHTML: '',
+    querySelector: (selector) => {
+      if (selector === '[data-settings-form]') {
+        return {
+          addEventListener: (event, handler) => {
+            listeners[event] = handler;
+          },
+        };
+      }
+      if (selector === '[data-settings-status]') {
+        return { textContent: '' };
+      }
+      if (selector === '.settings-save') {
+        return { disabled: false, classList: { add() {}, remove() {} }, textContent: 'Save' };
+      }
+      if (selector === '[data-quit-app]') {
+        return {
+          addEventListener: (event, handler) => {
+            listeners[`quit:${event}`] = handler;
+          },
+        };
+      }
+      return null;
+    },
+  };
+  const targetWindow = {
+    __TAURI__: {
+      core: {
+        invoke: async (command) => {
+          calls.push(command);
+          return command === 'get_app_settings' ? DEFAULT_APP_SETTINGS : null;
+        },
+      },
+    },
+  };
+
+  await import('../src/settings.js').then(({ initSettingsApp }) => initSettingsApp(root, targetWindow));
+  await listeners['quit:click']();
+
+  assert(calls.includes('quit_app'));
 });
 
 test('settings surface exposes no credential fields', async () => {

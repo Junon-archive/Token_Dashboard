@@ -103,6 +103,12 @@ async fn open_settings_window(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn quit_app(app: AppHandle) -> Result<(), String> {
+    app.exit(0);
+    Ok(())
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum WidgetWindowKind {
     Claude,
@@ -436,7 +442,8 @@ fn main() {
             get_app_settings,
             save_app_settings,
             move_widget_windows,
-            open_settings_window
+            open_settings_window,
+            quit_app
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Token Dashboard");

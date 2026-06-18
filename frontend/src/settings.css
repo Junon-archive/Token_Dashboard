@@ -38,6 +38,12 @@
   font-weight: 750;
 }
 
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .settings-section {
   padding: 18px 0;
   border-top: 1px solid rgb(255 255 255 / 12%);
@@ -100,12 +106,11 @@
   accent-color: #f5b14c;
 }
 
-.settings-save {
+.settings-save,
+.settings-quit {
   padding: 9px 14px;
   border: 0;
   border-radius: 8px;
-  color: #181204;
-  background: #f5b14c;
   font-weight: 750;
   cursor: pointer;
   transition:
@@ -114,11 +119,26 @@
     color 120ms ease;
 }
 
+.settings-save {
+  color: #181204;
+  background: #f5b14c;
+}
+
+.settings-quit {
+  color: #f1f3f4;
+  background: #2b2e37;
+}
+
 .settings-save:hover {
   background: #ffc05e;
 }
 
+.settings-quit:hover {
+  background: #383c47;
+}
+
 .settings-save:active,
+.settings-quit:active,
 .settings-save.is-saving {
   transform: translateY(1px) scale(.98);
 }

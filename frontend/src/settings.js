@@ -139,7 +139,10 @@ export function renderSettingsForm(settings = DEFAULT_APP_SETTINGS) {
     <form class="settings-form" data-settings-form>
       <header class="settings-header">
         <h1>Settings</h1>
-        <button class="settings-save" type="submit">Save</button>
+        <div class="settings-actions">
+          <button class="settings-quit" type="button" data-quit-app>Quit</button>
+          <button class="settings-save" type="submit">Save</button>
+        </div>
       </header>
 
       <section class="settings-section" aria-labelledby="settings-widgets">
@@ -222,6 +225,20 @@ export async function initSettingsApp(root = document.querySelector('#app'), tar
   const form = root.querySelector('[data-settings-form]');
   const status = root.querySelector('[data-settings-status]');
   const saveButton = root.querySelector('.settings-save');
+  const quitButton = root.querySelector('[data-quit-app]');
+  quitButton?.addEventListener('click', async () => {
+    const invoke = invokeFor(targetWindow);
+    if (!invoke) {
+      status.textContent = 'Quit is only available in the desktop app';
+      return;
+    }
+    try {
+      await invoke('quit_app');
+    } catch {
+      status.textContent = 'Unable to quit app';
+    }
+  });
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     currentSettings = collectSettingsFromForm(form, currentSettings);
