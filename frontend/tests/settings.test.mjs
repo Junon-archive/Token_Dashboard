@@ -19,7 +19,7 @@ test('renders SPEC UI-9 settings controls with collapsed advanced endpoints', ()
   assert.match(html, /id="polling-interval-sec" name="polling-interval-sec" type="number" value="180" min="120" step="30"/);
   assert.match(html, /Usage polling interval seconds/);
   assert.match(html, /id="widget-scale" name="widget-scale" type="number" value="1" min="0.75" max="1.5" step="0.05"/);
-  assert.match(html, /id="notifications-enabled" name="notifications-enabled" type="checkbox" checked/);
+  assert.doesNotMatch(html, /notifications-enabled|Notifications/);
   assert.match(html, /id="autostart" name="autostart" type="checkbox"/);
   assert.match(html, /id="pomodoro-focus-min" name="pomodoro-focus-min" type="number" value="20" min="1" max="180" step="1"/);
   assert.match(html, /id="pomodoro-break-min" name="pomodoro-break-min" type="number" value="5" min="1" max="60" step="1"/);
@@ -51,6 +51,16 @@ test('settings surface exposes no credential fields', async () => {
 
   assert.doesNotMatch(html, /access[_-]?token|refresh[_-]?token|id[_-]?token|api[_-]?key|authorization|secret/i);
   assert.doesNotMatch(source, /access[_-]?token|refresh[_-]?token|id[_-]?token|api[_-]?key|authorization|secret/i);
+});
+
+test('settings surface does not expose notifications', async () => {
+  const html = renderSettingsForm();
+  const settingsSource = await readFile(new URL('../src/settings.js', import.meta.url), 'utf8');
+  const dashboardSource = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
+
+  assert.doesNotMatch(html, /Notification|notifications-enabled/i);
+  assert.doesNotMatch(settingsSource, /notifications-enabled/);
+  assert.doesNotMatch(dashboardSource, /Notification|dispatchUsageNotifications|usageThresholdEvents/);
 });
 
 test('loads fallback defaults when Tauri invoke is absent', async () => {

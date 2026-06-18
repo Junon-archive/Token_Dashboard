@@ -10,7 +10,6 @@ export const DEFAULT_APP_SETTINGS = Object.freeze({
     interval_sec: 180,
     min_interval_sec: 120,
   },
-  notifications: { enabled: true, thresholds: [80, 95] },
   click_through: false,
   autostart: false,
   pomodoro: { focus_min: 20, break_min: 5 },
@@ -153,7 +152,6 @@ export function renderSettingsForm(settings = DEFAULT_APP_SETTINGS) {
         <div class="settings-grid">
           ${numberField('polling-interval-sec', 'Usage polling interval seconds', normalized.polling.interval_sec, 'min="120" step="30"')}
           ${numberField('widget-scale', 'Widget scale', normalized.widget_scale, 'min="0.75" max="1.5" step="0.05"')}
-          ${toggleRow('notifications-enabled', 'Notifications', normalized.notifications.enabled)}
           ${toggleRow('autostart', 'Autostart', normalized.autostart)}
         </div>
       </section>
@@ -204,10 +202,6 @@ export function collectSettingsFromForm(form, previousSettings = DEFAULT_APP_SET
     polling: {
       ...previous.polling,
       interval_sec: numberValue(form, 'polling-interval-sec', previous.polling.interval_sec),
-    },
-    notifications: {
-      ...previous.notifications,
-      enabled: checkboxValue(form, 'notifications-enabled'),
     },
     click_through: checkboxValue(form, 'click-through'),
     autostart: checkboxValue(form, 'autostart'),

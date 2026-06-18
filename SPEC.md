@@ -340,10 +340,10 @@ PoC에서 Ubuntu의 Claude access token이 만료 상태였다(§2.4-2). 선택�
 | UI-3 | 다중 모니터 위치 복구 | 저장 위치가 어떤 모니터 영역에도 없으면 주 모니터 중앙으로 복귀 |
 | UI-4 | 로그인 시 자동 시작 | 옵션 제공, **기본 off** |
 | UI-5 | 마지막 갱신 시각 표시 | hover 또는 stale 배지로 "Nm ago" 노출 |
-| UI-6 | 데스크톱 알림 | 사용률 80%/95% 최초 도달 시 1회 발송(창 리셋 시 재무장). 기본 on, 설정에서 off 가능 |
+| UI-6 | 데스크톱 알림 | v1에서는 제공하지 않음. 사용률은 게이지 상태로만 확인 |
 | UI-7 | 클릭 통과(click-through) | 설정 토글, 기본 off. on 시 위젯이 마우스 이벤트를 투과 |
 | UI-8 | 드래그 이동 | `-webkit-app-region: drag` (PoC macOS 검증, Linux는 M2에서 육안 검증 §2.4-9) |
-| UI-9 | 설정 화면 | 별도 일반 창(decorations 있는 표준 창). 항목: 위젯 토글 3종, 폴링 주기, 위젯 스케일, 알림 on/off, 클릭 통과, 자동 시작, 뽀모도로 시간, 엔드포인트 오버라이드(고급, 접힘) |
+| UI-9 | 설정 화면 | 별도 일반 창(decorations 있는 표준 창). 항목: 위젯 토글 3종, 폴링 주기, 위젯 스케일, 클릭 통과, 자동 시작, 뽀모도로 시간, 엔드포인트 오버라이드(고급, 접힘) |
 
 ---
 
@@ -364,7 +364,6 @@ PoC에서 Ubuntu의 Claude access token이 만료 상태였다(§2.4-2). 선택�
     "interval_sec": 180,
     "min_interval_sec": 120
   },
-  "notifications": { "enabled": true, "thresholds": [80, 95] },
   "click_through": false,
   "autostart": false,
   "pomodoro": { "focus_min": 20, "break_min": 5, "dial_full_min": 60 },

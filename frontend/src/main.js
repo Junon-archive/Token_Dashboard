@@ -13,7 +13,6 @@ import {
   tickPomodoro,
   updatePomodoroSettings,
 } from './pomodoro.js';
-import { dispatchUsageNotifications, usageThresholdEvents } from './notifications.js';
 
 const runtimeWidgetProvider = String(window.__TOKEN_DASHBOARD_WIDGET__ ?? '').toLowerCase();
 const singleWidgetProviders = new Set(['claude', 'codex', 'pomodoro']);
@@ -60,10 +59,6 @@ const fallbackAppSettings = {
   polling: {
     interval_sec: 180,
     min_interval_sec: 120,
-  },
-  notifications: {
-    enabled: true,
-    thresholds: [80, 95],
   },
   widgets: {
     claude: { enabled: true },
@@ -227,7 +222,6 @@ let pomodoro = createPomodoroState({
   breakMin: appSettings.pomodoro?.break_min,
 });
 let editingPomodoroMinutes = false;
-const sentNotificationKeys = new Set();
 let dragState = null;
 /* [REFACTOR] Keep live DOM references per widget so HTML span updates do not touch SVG glyph layers. */
 const dashboardRefs = {
@@ -412,20 +406,12 @@ function updateDashboardTime() {
   }
 }
 
-async function evaluateUsageNotifications(snapshots) {
-  const events = usageThresholdEvents(snapshots, appSettings, sentNotificationKeys);
-  await dispatchUsageNotifications(events, sentNotificationKeys);
-}
-
 async function reloadProviderSnapshots() {
   if (isPomodoroWindow) {
     return;
   }
   providerSnapshots = await loadSnapshots();
   updateDashboardTime();
-  if (!isSingleWidgetRuntime) {
-    await evaluateUsageNotifications(providerSnapshots);
-  }
 }
 
 function settingsSignature(settings) {
@@ -792,9 +778,6 @@ document.addEventListener('mouseout', (event) => {
 
 listenForSettingsUpdates();
 renderInitialDashboard();
-if (!isSingleWidgetRuntime) {
-  evaluateUsageNotifications(providerSnapshots);
-}
 if (!isPomodoroWindow) {
   setInterval(reloadProviderSnapshots, providerPollingMs(appSettings));
   setInterval(updateDashboardTime, 60000);
