@@ -21,6 +21,7 @@
 - Updated at: 2026-06-18 09:50 UTC
 - Updated at: 2026-06-18 10:05 UTC
 - Updated at: 2026-06-19 00:15 UTC
+- Updated at: 2026-06-19 00:30 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -312,6 +313,14 @@
 - Commands run: `npm test`, `npm run build`
 - Result: Pomodoro paused state again shows a darker phase-specific ring and the center label says `Paused`, while disk/number opacity dimming and the paused repaint loop remain disabled.
 - Next step: Re-run the Linux X11 visual check for paused Pomodoro: darker ring, `Paused` label, and no transparent-looking disk.
+
+### 2026-06-19 00:30 UTC
+- Agent: main
+- Task: Apply Pomodoro paused phase class during live updates
+- Files changed: `frontend/src/main.js`, `frontend/tests/widget.test.mjs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`
+- Result: The initial renderer produced `paused focus`/`paused break`, but the live update path collapsed `PAUSED` to `paused`, so the darker ring selector never matched after runtime updates. The runtime class mapper now preserves phase-specific paused classes.
+- Next step: Re-run the Linux X11 visual check for Pause: darker ring, `Paused` label, and no opacity dimming.
 
 ### 2026-06-11 07:14 UTC
 - Agent: main

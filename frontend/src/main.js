@@ -243,7 +243,7 @@ function widgetStateClass(snapshot) {
       return 'break';
     }
     if (snapshot.state === 'PAUSED') {
-      return 'paused';
+      return snapshot.phase === 'BREAK' ? 'paused break' : 'paused focus';
     }
     return 'focus';
   }

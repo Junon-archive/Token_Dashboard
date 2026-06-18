@@ -356,6 +356,7 @@ test('Pomodoro controls sit below the gauge and are excluded from window drag', 
   assert.match(js, /closest\('\[data-pomodoro-action\]'\)/);
   assert.match(js, /handlePomodoroAction\(actionButton\.dataset\.pomodoroAction\)/);
   assert.match(js, /setInterval\(updatePomodoroTime, 250\)/);
+  assert.match(js, /snapshot\.phase === 'BREAK' \? 'paused break' : 'paused focus'/);
   assert.match(js, /function updatePomodoroTime\(\)\s*\{\s*if \(!pomodoro\.isRunning && !pomodoro\.isEnding\) \{\s*return;\s*\}\s*updatePomodoroWidget\(new Date\(\)\);\s*\}/);
   assert.match(js, /snapshot\.state === 'PAUSED'[\s\S]*\? 'Paused'/);
   assert.match(js, /relatedTarget/);
