@@ -50,6 +50,11 @@ fn tauri_config_uses_dynamic_widget_windows() {
     assert_eq!(config["app"]["withGlobalTauri"], Value::Bool(true));
     assert_eq!(config["app"]["macOSPrivateApi"], Value::Bool(true));
     assert_eq!(config["app"]["windows"], Value::Array(Vec::new()));
+    assert!(config["bundle"]["icon"]
+        .as_array()
+        .expect("bundle icon should be an array")
+        .iter()
+        .any(|item| item.as_str() == Some("../assets/Thumbnail.png")));
 }
 
 #[test]
@@ -59,4 +64,13 @@ fn settings_window_has_quit_command() {
     assert!(main_rs.contains("async fn quit_app(app: AppHandle)"));
     assert!(main_rs.contains("app.exit(0);"));
     assert!(main_rs.contains("quit_app"));
+}
+
+#[test]
+fn windows_use_thumbnail_icon_asset() {
+    let main_rs = include_str!("../src/main.rs");
+
+    assert!(main_rs.contains("fn thumbnail_icon()"));
+    assert!(main_rs.contains("include_bytes!(\"../../assets/Thumbnail.png\")"));
+    assert!(main_rs.contains(".icon(thumbnail_icon()?)"));
 }

@@ -2,11 +2,11 @@
 
 ## Current Status
 - Current milestone: M4 — Packaging and Release
-- Current task: Start packaging/release preparation from committed M3 baseline
-- Last completed task: Added a Settings `Quit` button so users can terminate the frameless/skip-taskbar widget app
-- Last command run: `npm test`, `cargo test --manifest-path src-tauri/Cargo.toml`, `npm run build`
-- Last test result: Passed — frontend Pomodoro/settings/widget tests and Rust 58 lib tests, 4 smoke tests, 5 contract tests
-- Next recommended command: Review packaging targets and start M4 with CI/package metadata planning
+- Current task: Pre-M4 app thumbnail/icon polish
+- Last completed task: Wired `assets/Thumbnail.png` as the app/window/bundle thumbnail source for Dock/taskbar/window-list surfaces
+- Last command run: `cargo test --manifest-path src-tauri/Cargo.toml`, `npm test`
+- Last test result: Passed — Rust 58 lib tests, 4 smoke tests, 2 main tests, 5 M1 contract tests, 5 window contract tests; frontend tests passed
+- Next recommended command: Run final build/format/diff checks, commit thumbnail polish, then start M4 CI/package metadata planning
 - Blocking issue: None for M3. macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled during M4 packaging validation.
 - Git status note: `.codex/` remains local untracked tooling config and should not be committed. The screenshot reference file is local input and is not required for runtime.
 - Updated at: 2026-06-15 10:25 UTC
@@ -25,6 +25,7 @@
 - Updated at: 2026-06-19 01:10 UTC
 - Updated at: 2026-06-19 01:25 UTC
 - Updated at: 2026-06-19 01:45 UTC
+- Updated at: 2026-06-19 02:15 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -78,6 +79,7 @@
 | 2026-06-19 | Remove v1 desktop notifications from the product surface | Gauge state is sufficient for current use; notification settings and Notification API dispatch add platform validation cost without clear value before M4 | `SPEC.md`, `frontend/src/main.js`, `frontend/src/settings.js`, `frontend/tests/settings.test.mjs`, `roadmap.md` |
 | 2026-06-19 | Hide click-through from settings without deleting runtime compatibility | The feature is not reliable enough to expose, but removing Rust config/window logic now would add unnecessary M4 risk; saves preserve existing `click_through` values instead of showing a broken control | `SPEC.md`, `frontend/src/settings.js`, `frontend/tests/settings.test.mjs`, `roadmap.md` |
 | 2026-06-19 | Add explicit app quit path in Settings | Frameless always-on-top widgets are hidden from the taskbar, so packaged users need a discoverable shutdown path that does not rely on terminal process management | `SPEC.md`, `src-tauri/src/main.rs`, `frontend/src/settings.js`, `frontend/src/settings.css`, `frontend/tests/settings.test.mjs`, `src-tauri/tests/window_contract.rs`, `roadmap.md` |
+| 2026-06-19 | Use `assets/Thumbnail.png` as the app thumbnail/icon source | M4 packaging needs a single specified image for macOS Dock/app switcher and Linux taskbar/window-list surfaces; Tauri window builders and bundle config now point at the same asset | `SPEC.md`, `assets/Thumbnail.png`, `src-tauri/src/main.rs`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `src-tauri/tests/window_contract.rs`, `roadmap.md` |
 
 ## Milestone Checklist
 
@@ -351,6 +353,14 @@
 - Commands run: `npm test`, `cargo test --manifest-path src-tauri/Cargo.toml`, `npm run build`
 - Result: Settings now has a `Quit` button wired to a `quit_app` Tauri command that exits the app. Tests cover the button render, invoke path, and Rust command registration.
 - Next step: Commit the quit control, then continue M4 packaging work.
+
+### 2026-06-19 02:15 UTC
+- Agent: main
+- Task: Add pre-M4 thumbnail/icon source
+- Files changed: `SPEC.md`, `assets/Thumbnail.png`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/src/main.rs`, `src-tauri/tauri.conf.json`, `src-tauri/tests/window_contract.rs`, `roadmap.md`
+- Commands run: `cargo fmt --manifest-path src-tauri/Cargo.toml`, `cargo test --manifest-path src-tauri/Cargo.toml`, `npm test`
+- Result: Added the product requirement that Dock/taskbar/window-list imagery uses `assets/Thumbnail.png`; enabled Tauri PNG image support; embedded that asset into settings and widget window builders; added bundle icon metadata and contract coverage.
+- Next step: Run final build/format/diff checks, commit this pre-M4 polish, then start M4 packaging/release work.
 
 ### 2026-06-11 07:14 UTC
 - Agent: main

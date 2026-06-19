@@ -18,6 +18,9 @@
   },
   "bundle": {
     "active": false,
-    "targets": []
+    "targets": [],
+    "icon": [
+      "../assets/Thumbnail.png"
+    ]
   }
 }

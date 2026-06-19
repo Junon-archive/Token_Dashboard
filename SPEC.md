@@ -345,6 +345,7 @@ PoC에서 Ubuntu의 Claude access token이 만료 상태였다(§2.4-2). 선택�
 | UI-8 | 드래그 이동 | `-webkit-app-region: drag` (PoC macOS 검증, Linux는 M2에서 육안 검증 §2.4-9) |
 | UI-9 | 설정 화면 | 별도 일반 창(decorations 있는 표준 창). 항목: 위젯 토글 3종, 폴링 주기, 위젯 스케일, 자동 시작, 뽀모도로 시간, 엔드포인트 오버라이드(고급, 접힘), 앱 종료 |
 | UI-10 | 앱 종료 | 설정 창에서 `Quit` 버튼 제공. frameless/skip-taskbar 위젯만 떠 있어도 사용자가 앱을 종료할 수 있어야 함 |
+| UI-11 | 앱 썸네일/아이콘 | macOS Dock/앱 전환기 및 Linux 작업표시줄/창 목록에 표시되는 앱 이미지는 `assets/Thumbnail.png`를 사용 |
 
 ---
 

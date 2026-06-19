@@ -6,8 +6,8 @@ use std::{
     },
 };
 use tauri::{
-    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Size, WebviewUrl,
-    WebviewWindowBuilder, WindowEvent,
+    image::Image, AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Size,
+    WebviewUrl, WebviewWindowBuilder, WindowEvent,
 };
 use token_dashboard::{
     autostart::set_autostart,
@@ -22,6 +22,11 @@ type AppDashboardRuntime = DashboardRuntime<
     token_dashboard::refresh::ReqwestRefreshHttpClient,
     token_dashboard::dashboard::DefaultCredentialSource,
 >;
+
+fn thumbnail_icon() -> Result<Image<'static>, String> {
+    Image::from_bytes(include_bytes!("../../assets/Thumbnail.png"))
+        .map_err(|error| error.to_string())
+}
 
 #[tauri::command]
 async fn usage_snapshots(
@@ -188,6 +193,8 @@ fn ensure_settings_window(app: &AppHandle) -> Result<(), String> {
         .transparent(false)
         .always_on_top(false)
         .skip_taskbar(false)
+        .icon(thumbnail_icon()?)
+        .map_err(|error| error.to_string())?
         .build()
         .map_err(|error| error.to_string())?;
     let window = app
@@ -366,6 +373,8 @@ fn ensure_widget_window(
             "window.__TOKEN_DASHBOARD_WIDGET__ = '{}';",
             kind.provider()
         ))
+        .icon(thumbnail_icon()?)
+        .map_err(|error| error.to_string())?
         .build()
         .map_err(|error| error.to_string())?;
     let window = app
