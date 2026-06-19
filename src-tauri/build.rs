@@ -12,7 +12,10 @@ fn main() {
         .current_dir("..")
         .status()
         .expect("failed to run npm build for Tauri frontend assets");
-    assert!(status.success(), "npm build failed for Tauri frontend assets");
+    assert!(
+        status.success(),
+        "npm build failed for Tauri frontend assets"
+    );
 
     tauri_build::build();
 }
