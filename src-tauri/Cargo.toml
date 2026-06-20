@@ -2,6 +2,7 @@
 name = "token-dashboard"
 version = "0.1.0"
 edition = "2021"
+default-run = "token-dashboard"
 
 [lib]
 name = "token_dashboard"

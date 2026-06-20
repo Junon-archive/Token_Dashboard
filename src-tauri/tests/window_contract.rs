@@ -96,3 +96,10 @@ fn linux_runtime_sets_rendering_env_and_warns_on_wayland() {
     assert!(main_rs.contains("XDG_SESSION_TYPE"));
     assert!(main_rs.contains("Wayland is not a v1 target"));
 }
+
+#[test]
+fn cargo_default_run_targets_gui_binary_for_packaging() {
+    let cargo_toml = include_str!("../Cargo.toml");
+
+    assert!(cargo_toml.contains("default-run = \"token-dashboard\""));
+}

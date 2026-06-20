@@ -4,10 +4,10 @@
 - Current milestone: M4 — Packaging and Release
 - Current task: M4 packaging/release foundation
 - Last completed task: Added GitHub Actions CI/release workflow drafts, enabled Tauri bundling metadata, and added README/troubleshooting/release notes
-- Last command run: `cargo tauri --version`
-- Last test result: Passed — `npm test`, `npm run build`, and `cargo test --manifest-path src-tauri/Cargo.toml`; local package build blocked because `cargo tauri` is not installed
-- Next recommended command: Install/verify Tauri CLI, build Ubuntu `.deb`/AppImage locally, then iterate on release workflow from the first CI run
-- Blocking issue: macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled before final M4 release. Local Tauri CLI is not installed, so package artifact generation has not yet been verified locally.
+- Last command run: `npm run build`
+- Last test result: Passed — `npm test`, `npm run build`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, and `cargo test --manifest-path src-tauri/Cargo.toml`
+- Next recommended command: Re-run `cargo tauri build --bundles deb,appimage` on the Ubuntu packaging PC from the latest `origin/main`
+- Blocking issue: macOS Keychain Security framework first path remains unverified on Ubuntu and should be handled before final M4 release. Ubuntu AppImage packaging failed once because the thumbnail icon was not square and Tauri selected `local_smoke`; both were fixed and need re-verification on the packaging PC.
 - Git status note: `.codex/` remains local untracked tooling config and should not be committed. The screenshot reference file is local input and is not required for runtime.
 - Updated at: 2026-06-15 10:25 UTC
 - Updated at: 2026-06-16 00:00 UTC
@@ -27,6 +27,7 @@
 - Updated at: 2026-06-19 01:45 UTC
 - Updated at: 2026-06-19 02:15 UTC
 - Updated at: 2026-06-20 00:45 UTC
+- Updated at: 2026-06-20 09:40 UTC
 
 ## Source Documents Read
 - [x] SPEC.md
@@ -82,6 +83,7 @@
 | 2026-06-19 | Add explicit app quit path in Settings | Frameless always-on-top widgets are hidden from the taskbar, so packaged users need a discoverable shutdown path that does not rely on terminal process management | `SPEC.md`, `src-tauri/src/main.rs`, `frontend/src/settings.js`, `frontend/src/settings.css`, `frontend/tests/settings.test.mjs`, `src-tauri/tests/window_contract.rs`, `roadmap.md` |
 | 2026-06-19 | Use `assets/Thumbnail.png` as the app thumbnail/icon source | M4 packaging needs a single specified image for macOS Dock/app switcher and Linux taskbar/window-list surfaces; Tauri window builders and bundle config now point at the same asset | `SPEC.md`, `assets/Thumbnail.png`, `src-tauri/src/main.rs`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `src-tauri/tests/window_contract.rs`, `roadmap.md` |
 | 2026-06-20 | Start M4 with CI/release docs before artifact tuning | Packaging needs a repeatable CI baseline and user-facing install/troubleshooting guidance before platform artifact issues can be validated cleanly | `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `README.md`, `docs/troubleshooting.md`, `RELEASE_NOTES.md`, `src-tauri/tauri.conf.json`, `roadmap.md` |
+| 2026-06-20 | Make the M4 Linux bundle inputs packageable | AppImage requires a square icon and Tauri must package the GUI binary, not the local smoke helper; `assets/Thumbnail.png` is now square and Cargo default-run points at `token-dashboard` | `assets/Thumbnail.png`, `src-tauri/Cargo.toml`, `src-tauri/tests/window_contract.rs`, `roadmap.md` |
 
 ## Milestone Checklist
 
@@ -371,6 +373,14 @@
 - Commands run: `npm test`, `npm run build`, `cargo fmt --manifest-path src-tauri/Cargo.toml`, `cargo test --manifest-path src-tauri/Cargo.toml`, `cargo tauri --version`
 - Result: Added CI-safe test workflow, tag-triggered draft release workflow, enabled Tauri bundling metadata, documented install/privacy/platform/troubleshooting/release notes, and added a Linux Wayland non-target warning. Local package build is still blocked because `cargo tauri` is not installed in this environment.
 - Next step: Install/verify Tauri CLI, build Ubuntu `.deb` and AppImage locally, then handle macOS Keychain Security framework-first implementation or mark it as a release blocker with macOS validation.
+
+### 2026-06-20 09:40 UTC
+- Agent: main
+- Task: Fix Ubuntu packaging blocker found on external packaging PC
+- Files changed: `assets/Thumbnail.png`, `src-tauri/Cargo.toml`, `src-tauri/tests/window_contract.rs`, `roadmap.md`
+- Commands run: `npm test`, `npm run build`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, `cargo test --manifest-path src-tauri/Cargo.toml`
+- Result: External Ubuntu packaging reached `.deb` generation but AppImage failed because `assets/Thumbnail.png` was `415x424`, not square. Tauri also selected the `local_smoke` helper as the packaged application. The thumbnail asset is now `424x424`, and `default-run = "token-dashboard"` pins Cargo/Tauri to the GUI binary.
+- Next step: Pull latest `origin/main` on the Ubuntu packaging PC and re-run `cargo tauri build --bundles deb,appimage`.
 
 ### 2026-06-11 07:14 UTC
 - Agent: main
