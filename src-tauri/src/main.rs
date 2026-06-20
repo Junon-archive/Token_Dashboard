@@ -410,7 +410,17 @@ fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
 
 fn main() {
     #[cfg(target_os = "linux")]
-    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+        if std::env::var("XDG_SESSION_TYPE")
+            .map(|session| session.eq_ignore_ascii_case("wayland"))
+            .unwrap_or(false)
+        {
+            eprintln!(
+                "token-dashboard warning: Ubuntu X11 is the supported Linux target; Wayland is not a v1 target."
+            );
+        }
+    }
 
     tauri::Builder::default()
         .setup(|app| {

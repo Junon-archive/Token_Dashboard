@@ -17,8 +17,14 @@
     }
   },
   "bundle": {
-    "active": false,
-    "targets": [],
+    "active": true,
+    "targets": "all",
+    "category": "Utility",
+    "shortDescription": "Floating local usage dashboard for Claude Code, Codex CLI, and Pomodoro.",
+    "longDescription": "Token Dashboard is an unofficial local-only floating widget for Claude Code usage, Codex CLI usage, and Pomodoro timing. Tokens stay in the original CLI-owned locations and are never persisted in the app config.",
+    "publisher": "Junon Archive",
+    "homepage": "https://github.com/Junon-archive/Token_Dashboard",
+    "license": "MIT",
     "icon": [
       "../assets/Thumbnail.png"
     ]

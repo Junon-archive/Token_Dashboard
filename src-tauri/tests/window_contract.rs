@@ -50,6 +50,19 @@ fn tauri_config_uses_dynamic_widget_windows() {
     assert_eq!(config["app"]["withGlobalTauri"], Value::Bool(true));
     assert_eq!(config["app"]["macOSPrivateApi"], Value::Bool(true));
     assert_eq!(config["app"]["windows"], Value::Array(Vec::new()));
+    assert_eq!(config["bundle"]["active"], Value::Bool(true));
+    assert_eq!(
+        config["bundle"]["targets"],
+        Value::String("all".to_string())
+    );
+    assert_eq!(
+        config["bundle"]["license"],
+        Value::String("MIT".to_string())
+    );
+    assert_eq!(
+        config["bundle"]["category"],
+        Value::String("Utility".to_string())
+    );
     assert!(config["bundle"]["icon"]
         .as_array()
         .expect("bundle icon should be an array")
@@ -73,4 +86,13 @@ fn windows_use_thumbnail_icon_asset() {
     assert!(main_rs.contains("fn thumbnail_icon()"));
     assert!(main_rs.contains("include_bytes!(\"../../assets/Thumbnail.png\")"));
     assert!(main_rs.contains(".icon(thumbnail_icon()?)"));
+}
+
+#[test]
+fn linux_runtime_sets_rendering_env_and_warns_on_wayland() {
+    let main_rs = include_str!("../src/main.rs");
+
+    assert!(main_rs.contains("WEBKIT_DISABLE_DMABUF_RENDERER"));
+    assert!(main_rs.contains("XDG_SESSION_TYPE"));
+    assert!(main_rs.contains("Wayland is not a v1 target"));
 }
